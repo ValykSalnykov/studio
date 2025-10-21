@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-const webhookUrl = 'https://planfix-to-syrve.com:8443/webhook-test/23860823-4ec5-4723-9b55-d8e13285884a';
+const webhookUrl = process.env.WEBHOOK_URL || 'https://planfix-to-syrve.com:8443/webhook-test/23860823-4ec5-4723-9b55-d8e13285884a';
 
 const messageSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -25,6 +25,12 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
   }
 
   const { message } = validatedFields.data;
+
+  if (!webhookUrl || webhookUrl.startsWith('https://planfix-to-syrve.com')) {
+    return {
+      error: 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.',
+    };
+  }
 
   try {
     const response = await fetch(webhookUrl, {
