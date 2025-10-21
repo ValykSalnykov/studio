@@ -31,27 +31,21 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
   }
 
   try {
-    // Make a GET request instead of POST and remove the body
     const response = await fetch(webhookUrl, {
       method: 'GET',
       headers: {
-        // Content-Type is no longer needed for a GET request without a body
+        // "Content-Type" is not standard for GET requests, but your curl example includes it.
+        // Let's add it to match the curl command.
+        'Content-Type': 'application/json',
       },
+      // Adding an empty body to match `curl -d ""` if needed, though this is non-standard for GET
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Webhook error:', errorBody);
-      return {
-        error: `Webhook request failed with status: ${response.status}`,
-      };
-    }
 
     const responseText = await response.text();
     let responseContent: string;
+
     try {
       const responseData = JSON.parse(responseText);
-      
       const data = responseData[0]?.json?.test;
       
       if (data) {
@@ -59,9 +53,15 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
       } else {
          responseContent = `Received: ${responseText}`;
       }
-
     } catch (e) {
       responseContent = `Received: ${responseText}`;
+    }
+
+    if (!response.ok) {
+        // If the request failed, we'll return the response body as an error message
+        return {
+          error: `Request failed with status ${response.status}. Response: ${responseContent}`,
+        };
     }
     
     return {
