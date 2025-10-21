@@ -24,8 +24,6 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
     };
   }
 
-  const { message } = validatedFields.data;
-
   if (!webhookUrl || webhookUrl.startsWith('https://planfix-to-syrve.com')) {
     return {
       error: 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.',
@@ -33,12 +31,12 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
   }
 
   try {
+    // Make a GET request instead of POST and remove the body
     const response = await fetch(webhookUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        // Content-Type is no longer needed for a GET request without a body
       },
-      body: JSON.stringify({ message }),
     });
 
     if (!response.ok) {
