@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
@@ -20,7 +21,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { UserAuth, MockUser, mockUsers } from '@/components/user-auth';
+import { onAuthStateChange } from '../lib/auth'; // Corrected import path
+import type { User as FirebaseUser } from 'firebase/auth';
 
 type Message = {
   id: number;
@@ -65,23 +67,22 @@ function BotMessage({ content, logs }: { content: React.ReactNode, logs?: string
     );
 }
 
-export function ChatUI() {
+export default function ChatUI() { // Changed to export default
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [currentUser, setCurrentUser] = useState<MockUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
 
-  const handleLogin = (userId: string) => {
-    const user = mockUsers.find(u => u.id === userId);
-    setCurrentUser(user || null);
-    setMessages([]); // Clear messages on login
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setMessages([]); // Clear messages on logout
-  };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setCurrentUser(user);
+      if (!user) {
+        setMessages([]); // Clear messages on logout
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
 
   const scrollToBottom = () => {
@@ -107,7 +108,7 @@ export function ChatUI() {
 
     const formData = new FormData();
     formData.append('message', trimmedInput);
-    formData.append('sessionId', currentUser.sessionId);
+    formData.append('sessionId', currentUser.uid); // Using user UID as session ID
 
     startTransition(async () => {
       const result = await sendMessage(null, formData);
@@ -140,8 +141,7 @@ export function ChatUI() {
 
   return (
     <div className="w-full max-w-2xl mx-auto relative">
-        <UserAuth currentUser={currentUser} onLogin={handleLogin} onLogout={handleLogout} />
-        <Card className="w-full h-[90vh] md:h-[80vh] flex flex-col shadow-2xl bg-card mt-16">
+        <Card className="w-full h-[90vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-center text-2xl">Webhook Chat</CardTitle>
             </CardHeader>
@@ -152,10 +152,16 @@ export function ChatUI() {
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
                             <p className="mt-4 text-lg font-semibold">Please log in to start chatting.</p>
-                            <p className="text-sm text-muted-foreground">Select a user from the dropdown in the top right.</p>
                         </div>
                     ) : (
                     <> 
+                        {messages.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                <Bot className="h-12 w-12 text-muted-foreground"/>
+                                <p className="mt-4 text-lg font-semibold">Chat has started.</p>
+                                <p className="text-sm text-muted-foreground">Send your first message to begin.</p>
+                            </div>
+                        )}
                         {messages.map((message) => (
                         <div
                             key={message.id}

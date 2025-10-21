@@ -1,61 +1,97 @@
+
 'use client';
 
-import { useState } from 'react';
-import { LogIn, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { signUp, signIn, logOut, onAuthStateChange } from '../lib/auth';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 
-// Define the user structure and mock data
-export type MockUser = {
-  id: string;
-  name: string;
-  sessionId: string;
-};
+export default function UserAuth() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-export const mockUsers: MockUser[] = [
-  { id: '1', name: 'Alice', sessionId: 'alice-session-123' },
-  { id: '2', name: 'Bob', sessionId: 'bob-session-456' },
-  { id: '3', name: 'Charlie', sessionId: 'charlie-session-789' },
-];
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setUser(user);
+      if (user) {
+        setIsDialogOpen(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-type UserAuthProps = {
-  currentUser: MockUser | null;
-  onLogin: (userId: string) => void;
-  onLogout: () => void;
-};
+  const handleSignUp = async () => {
+    const { error } = await signUp(email, password);
+    if (error) {
+      setError(error);
+    } else {
+      setError(null);
+    }
+  };
 
-export function UserAuth({ currentUser, onLogin, onLogout }: UserAuthProps) {
+  const handleSignIn = async () => {
+    const { error } = await signIn(email, password);
+    if (error) {
+      setError(error);
+    } else {
+      setError(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await logOut();
+    setEmail('');
+    setPassword('');
+    setError(null);
+  };
+
   return (
-    <div className="absolute top-4 right-4 z-10">
-      {currentUser ? (
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Welcome, {currentUser.name}</span>
-          <Button onClick={onLogout} size="sm" variant="outline">
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+    <div>
+      {user ? (
+        <div className='flex items-center space-x-4'>
+          <p className='text-sm text-gray-500'>Welcome, {user.email}</p>
+          <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
         </div>
       ) : (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline">
-              <LogIn className="h-4 w-4 mr-2" />
-              Login As
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {mockUsers.map(user => (
-              <DropdownMenuItem key={user.id} onClick={() => onLogin(user.id)}>
-                {user.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Login / Sign Up</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Authenticate</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+              />
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+              />
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <div className='flex justify-between'>
+                <Button onClick={handleSignIn}>Sign In</Button>
+                <Button onClick={handleSignUp}>Sign Up</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
