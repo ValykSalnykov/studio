@@ -9,8 +9,9 @@ const messageSchema = z.object({
 });
 
 type ActionState = {
-  response?: string[];
-  error?: string[];
+  logs?: string[];
+  response?: string; // AI Message
+  error?: string | string[];
 } | null;
 
 export async function sendMessage(prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -23,65 +24,73 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
   if (!validatedFields.success) {
     log.push('[FAIL] Message validation failed.');
     return {
-      error: [...log, validatedFields.error.flatten().fieldErrors.message?.[0] || 'Unknown validation error.'],
+      logs: log,
+      error: validatedFields.error.flatten().fieldErrors.message || 'Unknown validation error.',
     };
   }
   log.push(`[2/6] Message validated: "${validatedFields.data.message}"`);
   
-  if (!webhookUrl || webhookUrl.startsWith('https://planfix-to-syrve.com')) {
-     log.push('[FAIL] Webhook URL is not configured correctly.');
+  if (!webhookUrl) {
+    log.push('[FAIL] Webhook URL is not configured correctly.');
     return {
-      error: [...log, 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.'],
+      logs: log,
+      error: 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.',
     };
   }
   log.push(`[3/6] Using webhook URL: ${webhookUrl}`);
 
   try {
-    log.push('[4/6] Attempting to send GET request with fetch...');
+    log.push('[4/6] Attempting to send POST request with fetch...');
     const response = await fetch(webhookUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // The body is omitted for GET request as per last change
+      body: JSON.stringify({ message: validatedFields.data.message }),
     });
     log.push(`[5/6] Received response with status: ${response.status}`);
 
     const responseText = await response.text();
     log.push(`[6/6] Raw response body received: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
-
-    let responseContent: string;
-    try {
-      const responseData = JSON.parse(responseText);
-      const data = responseData[0]?.json?.test;
-      
-      if (data) {
-         responseContent = `The bot says: ${JSON.stringify(data)}`;
-      } else {
-         responseContent = `Received: ${responseText}`;
-      }
-    } catch (e) {
-      responseContent = `Received: ${responseText}`;
-    }
-
+    
     if (!response.ok) {
         return {
-          error: [...log, `Request failed. Final processed response: ${responseContent}`],
+          logs: log,
+          error: `Request failed. Status: ${response.status}. Body: ${responseText}`,
         };
+    }
+
+    let aiMessage: string;
+    try {
+        const responseData = JSON.parse(responseText);
+        // Expecting response format:  [{"text": "..."}]
+        if (Array.isArray(responseData) && responseData[0]?.text) {
+            aiMessage = responseData[0].text;
+        } else if (responseData.text) { // Fallback for {"text": "..."}
+            aiMessage = responseData.text;
+        } else {
+            // If the response is not in the expected format, but the request was successful, display the raw response.
+            aiMessage = responseText;
+        }
+    } catch (e) {
+        // The response is not JSON, so treat the entire text as the message.
+        aiMessage = responseText;
     }
     
     return {
-      response: [...log, `Success! Final processed response: ${responseContent}`],
+        logs: log,
+        response: aiMessage,
     };
 
   } catch (error: unknown) {
     log.push('[FAIL] An error occurred during the fetch call.');
     console.error('Fetch error:', error);
     if (error instanceof Error) {
-        return { error: [...log, `Failed to send message: ${error.message}`] };
+        return { logs: log, error: `Failed to send message: ${error.message}` };
     }
     return {
-      error: [...log, 'An unknown network error occurred.'],
+      logs: log,
+      error: 'An unknown network error occurred.',
     };
   }
 }

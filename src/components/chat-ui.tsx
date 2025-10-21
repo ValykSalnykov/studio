@@ -1,19 +1,31 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { sendMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 type Message = {
   id: number;
   role: 'user' | 'bot';
   content: React.ReactNode;
+  logs?: string[];
 };
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
@@ -25,13 +37,32 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
 }
 
 function LogMessage({ logs }: { logs: string[] }) {
-    return (
-        <pre className="text-xs whitespace-pre-wrap font-mono bg-slate-800 text-white p-4 rounded-md">
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-2">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
+            {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            Technical Details
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent asChild>
+         <pre className="text-xs whitespace-pre-wrap font-mono bg-slate-800 text-white p-4 rounded-md mt-1">
             {logs.join('\n')}
         </pre>
-    );
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
+function BotMessage({ content, logs }: { content: React.ReactNode, logs?: string[] }) {
+    return (
+        <div>
+            <div className="text-sm break-words">{content}</div>
+            {logs && logs.length > 0 && <LogMessage logs={logs} />}
+        </div>
+    );
+}
 
 export function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,11 +97,15 @@ export function ChatUI() {
       const result = await sendMessage(null, formData);
 
       let botContent: React.ReactNode;
-
+      let logs: string[] | undefined;
+      
       if (result?.response) {
-        botContent = <LogMessage logs={result.response} />;
+        botContent = result.response;
+        logs = result.logs
       } else if (result?.error) {
-        botContent = <LogMessage logs={result.error} />;
+        const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
+        botContent = <span className="text-destructive">Error: {errorString}</span>;
+        logs = result.logs;
       } else {
         botContent = <span className="text-destructive">An unknown error occurred.</span>;
       }
@@ -79,6 +114,7 @@ export function ChatUI() {
         id: Date.now() + 1,
         role: 'bot',
         content: botContent,
+        logs: logs,
       };
       setMessages(prev => [...prev, botMessage]);
     });
@@ -117,7 +153,11 @@ export function ChatUI() {
                       : 'bg-muted text-card-foreground rounded-bl-none'
                   )}
                 >
-                  <div className="text-sm break-words">{message.content}</div>
+                    {message.role === 'bot' ? (
+                        <BotMessage content={message.content} logs={message.logs} />
+                    ) : (
+                        <div className="text-sm break-words">{message.content}</div>
+                    )}
                 </div>
                  {message.role === 'user' && (
                   <Avatar className="h-8 w-8 border">
