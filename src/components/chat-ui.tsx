@@ -20,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { UserAuth, MockUser, mockUsers } from '@/components/user-auth';
 
 type Message = {
   id: number;
@@ -69,6 +70,19 @@ export function ChatUI() {
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = useState<MockUser | null>(null);
+
+  const handleLogin = (userId: string) => {
+    const user = mockUsers.find(u => u.id === userId);
+    setCurrentUser(user || null);
+    setMessages([]); // Clear messages on login
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setMessages([]); // Clear messages on logout
+  };
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,6 +94,7 @@ export function ChatUI() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!currentUser) return; // Prevent sending messages if not logged in
     const trimmedInput = input.trim();
     if (!trimmedInput || isPending) return;
 
@@ -92,6 +107,7 @@ export function ChatUI() {
 
     const formData = new FormData();
     formData.append('message', trimmedInput);
+    formData.append('sessionId', currentUser.sessionId);
 
     startTransition(async () => {
       const result = await sendMessage(null, formData);
@@ -123,71 +139,84 @@ export function ChatUI() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto h-[90vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
-      <CardHeader className="border-b">
-        <CardTitle className="font-headline text-center text-2xl">Webhook Chat</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-6">
-        <ScrollArea className="h-full">
-          <div className="space-y-6 pr-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                )}
-              >
-                {message.role === 'bot' && (
-                  <Avatar className="h-8 w-8 border">
-                    <AvatarFallback className="bg-accent text-accent-foreground">
-                      <Bot className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div
-                  className={cn(
-                    'max-w-xs lg:max-w-md rounded-lg px-4 py-2 shadow-md',
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-muted text-card-foreground rounded-bl-none'
-                  )}
-                >
-                    {message.role === 'bot' ? (
-                        <BotMessage content={message.content} logs={message.logs} />
+    <div className="w-full max-w-2xl mx-auto relative">
+        <UserAuth currentUser={currentUser} onLogin={handleLogin} onLogout={handleLogout} />
+        <Card className="w-full h-[90vh] md:h-[80vh] flex flex-col shadow-2xl bg-card mt-16">
+            <CardHeader className="border-b">
+                <CardTitle className="font-headline text-center text-2xl">Webhook Chat</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-6">
+                <ScrollArea className="h-full">
+                <div className="space-y-6 pr-4">
+                    {!currentUser ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                            <Bot className="h-12 w-12 text-muted-foreground"/>
+                            <p className="mt-4 text-lg font-semibold">Please log in to start chatting.</p>
+                            <p className="text-sm text-muted-foreground">Select a user from the dropdown in the top right.</p>
+                        </div>
                     ) : (
-                        <div className="text-sm break-words">{message.content}</div>
+                    <> 
+                        {messages.map((message) => (
+                        <div
+                            key={message.id}
+                            className={cn(
+                            'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                            )}
+                        >
+                            {message.role === 'bot' && (
+                            <Avatar className="h-8 w-8 border">
+                                <AvatarFallback className="bg-accent text-accent-foreground">
+                                <Bot className="h-5 w-5" />
+                                </AvatarFallback>
+                            </Avatar>
+                            )}
+                            <div
+                            className={cn(
+                                'max-w-xs lg:max-w-md rounded-lg px-4 py-2 shadow-md',
+                                message.role === 'user'
+                                ? 'bg-primary text-primary-foreground rounded-br-none'
+                                : 'bg-muted text-card-foreground rounded-bl-none'
+                            )}
+                            >
+                                {message.role === 'bot' ? (
+                                    <BotMessage content={message.content} logs={message.logs} />
+                                ) : (
+                                    <div className="text-sm break-words">{message.content}</div>
+                                )}
+                            </div>
+                            {message.role === 'user' && (
+                            <Avatar className="h-8 w-8 border">
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">
+                                <User className="h-5 w-5" />
+                                </AvatarFallback>
+                            </Avatar>
+                            )}
+                        </div>
+                        ))}
+                    </>
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
-                 {message.role === 'user' && (
-                  <Avatar className="h-8 w-8 border">
-                    <AvatarFallback className="bg-secondary text-secondary-foreground">
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-             <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-      </CardContent>
-      <CardFooter className="border-t pt-6">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full flex items-center gap-3"
-        >
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            autoComplete="off"
-            disabled={isPending}
-            className="text-base"
-          />
-          <SubmitButton isPending={isPending} />
-        </form>
-      </CardFooter>
-    </Card>
+                </ScrollArea>
+            </CardContent>
+            <CardFooter className="border-t pt-6">
+                <form
+                onSubmit={handleSubmit}
+                className="w-full flex items-center gap-3"
+                >
+                <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={currentUser ? "Type a message..." : "Please log in first"}
+                    autoComplete="off"
+                    disabled={isPending || !currentUser}
+                    className="text-base"
+                />
+                <SubmitButton isPending={isPending} />
+                </form>
+            </CardFooter>
+        </Card>
+    </div>
   );
 }

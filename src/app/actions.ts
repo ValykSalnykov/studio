@@ -6,6 +6,7 @@ const webhookUrl = process.env.WEBHOOK_URL || 'https://planfix-to-syrve.com:8443
 
 const messageSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
+  sessionId: z.string().min(1, 'Session ID is required'),
 });
 
 type ActionState = {
@@ -19,16 +20,18 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
 
   const validatedFields = messageSchema.safeParse({
     message: formData.get('message'),
+    sessionId: formData.get('sessionId'),
   });
 
   if (!validatedFields.success) {
-    log.push('[FAIL] Message validation failed.');
+    log.push('[FAIL] Validation failed.');
     return {
       logs: log,
       error: validatedFields.error.flatten().fieldErrors.message || 'Unknown validation error.',
     };
   }
   log.push(`[2/6] Message validated: "${validatedFields.data.message}"`);
+  log.push(`[2/6] Session ID validated: "${validatedFields.data.sessionId}"`);
   
   if (!webhookUrl) {
     log.push('[FAIL] Webhook URL is not configured correctly.');
@@ -46,7 +49,10 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: validatedFields.data.message }),
+      body: JSON.stringify({
+         message: validatedFields.data.message,
+         sessionId: validatedFields.data.sessionId,
+    }),
     });
     log.push(`[5/6] Received response with status: ${response.status}`);
 
@@ -63,17 +69,12 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
     let aiMessage: string;
     try {
         const responseData = JSON.parse(responseText);
-        // Expecting response format:  [{"text": "..."}]
-        if (Array.isArray(responseData) && responseData[0]?.text) {
-            aiMessage = responseData[0].text;
-        } else if (responseData.text) { // Fallback for {"text": "..."}
-            aiMessage = responseData.text;
+        if (responseData.output) {
+            aiMessage = responseData.output;
         } else {
-            // If the response is not in the expected format, but the request was successful, display the raw response.
             aiMessage = responseText;
         }
     } catch (e) {
-        // The response is not JSON, so treat the entire text as the message.
         aiMessage = responseText;
     }
     
