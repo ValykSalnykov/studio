@@ -9,41 +9,48 @@ const messageSchema = z.object({
 });
 
 type ActionState = {
-  response?: string;
-  error?: string;
+  response?: string[];
+  error?: string[];
 } | null;
 
 export async function sendMessage(prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const log: string[] = ['[1/6] Server action started.'];
+
   const validatedFields = messageSchema.safeParse({
     message: formData.get('message'),
   });
 
   if (!validatedFields.success) {
+    log.push('[FAIL] Message validation failed.');
     return {
-      error: validatedFields.error.flatten().fieldErrors.message?.[0],
+      error: [...log, validatedFields.error.flatten().fieldErrors.message?.[0] || 'Unknown validation error.'],
     };
   }
-
+  log.push(`[2/6] Message validated: "${validatedFields.data.message}"`);
+  
   if (!webhookUrl || webhookUrl.startsWith('https://planfix-to-syrve.com')) {
+     log.push('[FAIL] Webhook URL is not configured correctly.');
     return {
-      error: 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.',
+      error: [...log, 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.'],
     };
   }
+  log.push(`[3/6] Using webhook URL: ${webhookUrl}`);
 
   try {
+    log.push('[4/6] Attempting to send GET request with fetch...');
     const response = await fetch(webhookUrl, {
       method: 'GET',
       headers: {
-        // "Content-Type" is not standard for GET requests, but your curl example includes it.
-        // Let's add it to match the curl command.
         'Content-Type': 'application/json',
       },
-      // Adding an empty body to match `curl -d ""` if needed, though this is non-standard for GET
+      // The body is omitted for GET request as per last change
     });
+    log.push(`[5/6] Received response with status: ${response.status}`);
 
     const responseText = await response.text();
-    let responseContent: string;
+    log.push(`[6/6] Raw response body received: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
 
+    let responseContent: string;
     try {
       const responseData = JSON.parse(responseText);
       const data = responseData[0]?.json?.test;
@@ -58,23 +65,23 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
     }
 
     if (!response.ok) {
-        // If the request failed, we'll return the response body as an error message
         return {
-          error: `Request failed with status ${response.status}. Response: ${responseContent}`,
+          error: [...log, `Request failed. Final processed response: ${responseContent}`],
         };
     }
     
     return {
-      response: responseContent,
+      response: [...log, `Success! Final processed response: ${responseContent}`],
     };
 
   } catch (error: unknown) {
+    log.push('[FAIL] An error occurred during the fetch call.');
     console.error('Fetch error:', error);
     if (error instanceof Error) {
-        return { error: `Failed to send message: ${error.message}` };
+        return { error: [...log, `Failed to send message: ${error.message}`] };
     }
     return {
-      error: 'An unknown network error occurred.',
+      error: [...log, 'An unknown network error occurred.'],
     };
   }
 }

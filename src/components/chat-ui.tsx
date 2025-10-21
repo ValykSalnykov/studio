@@ -24,6 +24,15 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
   );
 }
 
+function LogMessage({ logs }: { logs: string[] }) {
+    return (
+        <pre className="text-xs whitespace-pre-wrap font-mono bg-slate-800 text-white p-4 rounded-md">
+            {logs.join('\n')}
+        </pre>
+    );
+}
+
+
 export function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -59,9 +68,9 @@ export function ChatUI() {
       let botContent: React.ReactNode;
 
       if (result?.response) {
-        botContent = result.response;
+        botContent = <LogMessage logs={result.response} />;
       } else if (result?.error) {
-        botContent = <span className="text-destructive">{`Error: ${result.error}`}</span>;
+        botContent = <LogMessage logs={result.error} />;
       } else {
         botContent = <span className="text-destructive">An unknown error occurred.</span>;
       }
@@ -108,7 +117,7 @@ export function ChatUI() {
                       : 'bg-muted text-card-foreground rounded-bl-none'
                   )}
                 >
-                  <p className="text-sm break-words">{message.content}</p>
+                  <div className="text-sm break-words">{message.content}</div>
                 </div>
                  {message.role === 'user' && (
                   <Avatar className="h-8 w-8 border">
