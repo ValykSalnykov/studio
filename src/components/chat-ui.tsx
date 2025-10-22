@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText } from 'lucide-react';
 import { sendMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/collapsible';
 import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type Message = {
   id: number;
@@ -73,12 +74,19 @@ export default function ChatUI() {
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isFeedbackMode, setIsFeedbackMode] = useState(false);
+
+  const toggleFeedbackMode = () => {
+    setIsFeedbackMode(prev => !prev);
+    setInput('');
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
       setCurrentUser(user);
       if (!user) {
         setMessages([]);
+        setIsFeedbackMode(false);
       }
     });
     return () => unsubscribe();
@@ -102,13 +110,16 @@ export default function ChatUI() {
     const userMessage: Message = {
       id: Date.now(),
       role: 'user',
-      content: trimmedInput,
+      content: isFeedbackMode ? `Отзыв: ${trimmedInput}` : trimmedInput,
     };
     setMessages(prev => [...prev, userMessage]);
 
     const formData = new FormData();
     formData.append('message', trimmedInput);
     formData.append('sessionId', currentUser.uid);
+    if(isFeedbackMode) {
+        formData.append('review', 'true');
+    }
 
     startTransition(async () => {
       const result = await sendMessage(null, formData);
@@ -137,6 +148,9 @@ export default function ChatUI() {
     });
 
     setInput('');
+    if (isFeedbackMode) {
+        toggleFeedbackMode();
+    }
   };
 
   return (
@@ -207,20 +221,52 @@ export default function ChatUI() {
                 </ScrollArea>
             </CardContent>
             <CardFooter className="border-t pt-6">
-                <form
-                onSubmit={handleSubmit}
-                className="w-full flex items-center gap-3"
-                >
-                <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={currentUser ? "Введите сообщение..." : "Пожалуйста, сначала войдите"}
-                    autoComplete="off"
-                    disabled={isPending || !currentUser}
-                    className="text-base"
-                />
-                <SubmitButton isPending={isPending} />
-                </form>
+                <div className="w-full">
+                    {isFeedbackMode && (
+                        <div className="text-xs text-muted-foreground mb-2 px-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                            Предоставь описание выполненных действий по конкретному кейсу (с указанием его номера если можешь) и полученный результат от выполненных действий.
+                        </div>
+                    )}
+                    <form
+                    onSubmit={handleSubmit}
+                    className="w-full flex items-center gap-3"
+                    >
+                        {isFeedbackMode ? (
+                            <Button variant="ghost" size="icon" onClick={toggleFeedbackMode} disabled={!currentUser} className="flex-shrink-0 animate-in fade-in-0 zoom-in-95 duration-300">
+                                <MessageSquareText className="h-5 w-5" />
+                            </Button>
+                        ) : (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" disabled={!currentUser} className="flex-shrink-0 animate-in fade-in-0 zoom-in-95 duration-300">
+                                        <Plus className="h-5 w-5" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent side="top" align="start" className="w-auto p-1">
+                                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={toggleFeedbackMode}>
+                                        <MessageSquareText className="h-4 w-4 mr-2" />
+                                        Отзыв
+                                    </Button>
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    <Input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={
+                            !currentUser 
+                                ? "Пожалуйста, сначала войдите" 
+                                : isFeedbackMode 
+                                    ? "Напишите ваш отзыв"
+                                    : "Спросите что-нибудь..."
+                        }
+                        autoComplete="off"
+                        disabled={isPending || !currentUser}
+                        className="text-base"
+                    />
+                    <SubmitButton isPending={isPending} />
+                    </form>
+                </div>
             </CardFooter>
         </Card>
     </div>

@@ -49,13 +49,19 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
 
+    const requestBody: { message: string, sessionId: string, review?: boolean } = {
+        message: validatedFields.data.message,
+        sessionId: validatedFields.data.sessionId,
+    };
+
+    if (formData.get('review') === 'true') {
+        requestBody.review = true;
+    }
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: validatedFields.data.message,
-        sessionId: validatedFields.data.sessionId,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
