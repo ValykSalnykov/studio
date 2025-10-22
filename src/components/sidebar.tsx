@@ -5,14 +5,27 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Search, CaseSensitive, ChevronDown, ChevronRight } from 'lucide-react';
+import { 
+  MessageSquare, 
+  Search, 
+  CaseSensitive, 
+  ChevronDown, 
+  ChevronRight,
+  LayoutTemplate, // Иконка для Шаблонайзера
+  Shield,         // Иконка для Админ панели
+} from 'lucide-react';
 
-// Обновленная структура ссылок
+// Обновленная структура ссылок с неактивными элементами
 const links = [
   {
     href: '/',
     label: 'ИИ Антон',
     icon: MessageSquare,
+  },
+  {
+    label: 'Шаблонайзер (soon)',
+    icon: LayoutTemplate,
+    disabled: true, // Флаг неактивности
   },
   {
     href: '/deep-search',
@@ -22,12 +35,16 @@ const links = [
   {
     label: 'Проверка кейсов',
     icon: CaseSensitive,
-    // Вложенные ссылки
     subLinks: [
       { href: '/cases/working', label: 'Рабочие' },
       { href: '/cases/complex', label: 'Сложные' },
       { href: '/cases/pending', label: 'Отложенные' },
     ],
+  },
+  {
+    label: 'Админ панель (soon)',
+    icon: Shield,
+    disabled: true, // Флаг неактивности
   },
 ];
 
@@ -36,13 +53,13 @@ function NavLink({ link, pathname }: { link: any; pathname: string }) {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const isParentActive = link.subLinks?.some((sub: any) => pathname.startsWith(sub.href));
 
-  // Открываем подменю, если текущий путь соответствует одному из дочерних элементов
   useState(() => {
     if (isParentActive) {
       setIsSubMenuOpen(true);
     }
   });
 
+  // Рендеринг подменю
   if (link.subLinks) {
     return (
       <div>
@@ -83,6 +100,17 @@ function NavLink({ link, pathname }: { link: any; pathname: string }) {
     );
   }
 
+  // Рендеринг неактивной ссылки
+  if (link.disabled) {
+    return (
+      <div className="flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium text-gray-500 cursor-not-allowed">
+        <link.icon className="h-5 w-5" />
+        <span>{link.label}</span>
+      </div>
+    );
+  }
+
+  // Рендеринг обычной ссылки
   return (
     <Link
       href={link.href}
