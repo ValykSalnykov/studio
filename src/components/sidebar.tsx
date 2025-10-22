@@ -1,52 +1,117 @@
 
 'use client';
 
-import { MessageSquare, LayoutTemplate, Search, CheckSquare, Shield } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { MessageSquare, Search, CaseSensitive, ChevronDown, ChevronRight } from 'lucide-react';
 
-const navItems = [
-  { name: 'ИИ Антон', href: '#', icon: MessageSquare, current: true },
-  { name: 'Шаблонайзер', href: '#', icon: LayoutTemplate, current: false },
-  { name: 'DeepSearch', href: '#', icon: Search, current: false },
-  { name: 'Проверка кейсов', href: '#', icon: CheckSquare, current: false },
-  { name: 'Админ панель', href: '#', icon: Shield, current: false },
+// Обновленная структура ссылок
+const links = [
+  {
+    href: '/',
+    label: 'ИИ Антон',
+    icon: MessageSquare,
+  },
+  {
+    href: '/deep-search',
+    label: 'Deep Search',
+    icon: Search,
+  },
+  {
+    label: 'Проверка кейсов',
+    icon: CaseSensitive,
+    // Вложенные ссылки
+    subLinks: [
+      { href: '/cases/working', label: 'Рабочие' },
+      { href: '/cases/complex', label: 'Сложные' },
+      { href: '/cases/pending', label: 'Отложенные' },
+    ],
+  },
 ];
 
-export function Sidebar() {
-  return (
-    <div className="w-64 flex flex-col bg-gray-900 text-white p-4">
-        <div className="flex items-center mb-8">
-            {/* You can place a logo here if you have one */}
-            <h1 className="text-2xl font-bold">Anton AI</h1>
-        </div>
-        <nav className="flex-1">
-            <ul className="space-y-2">
-            {navItems.map((item) => (
-                <li key={item.name}>
-                <a
-                    href={item.href}
-                    className={cn(
-                    'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
-                    item.current
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                    !item.current && 'cursor-not-allowed' // Make it look disabled
-                    )}
-                    aria-current={item.current ? 'page' : undefined}
-                    onClick={(e) => !item.current && e.preventDefault()} // Prevent navigation for disabled items
-                >
-                    <item.icon className="mr-3 h-6 w-6 flex-shrink-0" />
-                    <span>{item.name}</span>
-                    {!item.current && (
-                        <span className="ml-auto rounded-full bg-gray-700 px-2 py-1 text-xs text-gray-300">
-                            SOON
-                        </span>
-                    )}
-                </a>
-                </li>
+// Компонент для элемента навигации
+function NavLink({ link, pathname }: { link: any; pathname: string }) {
+  const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
+  const isParentActive = link.subLinks?.some((sub: any) => pathname.startsWith(sub.href));
+
+  // Открываем подменю, если текущий путь соответствует одному из дочерних элементов
+  useState(() => {
+    if (isParentActive) {
+      setIsSubMenuOpen(true);
+    }
+  });
+
+  if (link.subLinks) {
+    return (
+      <div>
+        <button
+          onClick={() => setIsSubMenuOpen(!isSubMenuOpen)}
+          className={cn(
+            'flex w-full items-center justify-between space-x-3 px-3 py-2 rounded-md text-sm font-medium',
+            isParentActive
+              ? 'bg-gray-700 text-white'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          )}
+        >
+          <div className="flex items-center space-x-3">
+            <link.icon className="w-5 h-5" />
+            <span>{link.label}</span>
+          </div>
+          {isSubMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+        {isSubMenuOpen && (
+          <div className="mt-1 ml-6 flex flex-col space-y-1 border-l border-gray-600 pl-3">
+            {link.subLinks.map((subLink: any) => (
+              <Link
+                key={subLink.href}
+                href={subLink.href}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-sm font-medium',
+                  pathname === subLink.href
+                    ? 'text-white bg-gray-600'
+                    : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                )}
+              >
+                {subLink.label}
+              </Link>
             ))}
-            </ul>
-        </nav>
-    </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={link.href}
+      className={cn(
+        'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium',
+        pathname === link.href
+          ? 'bg-gray-700 text-white'
+          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+      )}
+    >
+      <link.icon className="w-5 h-5" />
+      <span>{link.label}</span>
+    </Link>
+  );
+}
+
+export function Sidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-gray-800 md:bg-gray-900 md:p-4 text-white">
+       <div className="mb-8">
+        <h1 className="text-2xl font-bold">Anton AI</h1>
+      </div>
+      <nav className="flex flex-col space-y-2">
+        {links.map((link, index) => (
+          <NavLink key={index} link={link} pathname={pathname} />
+        ))}
+      </nav>
+    </aside>
   );
 }
