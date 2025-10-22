@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, Copy } from 'lucide-react';
-import { sendMessage } from '@/app/actions';
+import { sendTemplatorMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -163,7 +163,7 @@ export default function TemplatorPage() {
     formData.append('sessionId', currentUser.uid);
 
     startTransition(async () => {
-      const result = await sendMessage(null, formData);
+      const result = await sendTemplatorMessage(null, formData);
 
       let botContent: React.ReactNode;
       let logs: string[] | undefined;
