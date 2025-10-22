@@ -21,7 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { onAuthStateChange } from '../lib/auth'; // Corrected import path
+import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 type Message = {
@@ -33,7 +33,7 @@ type Message = {
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
   return (
-    <Button type="submit" size="icon" disabled={isPending} aria-label="Send message" className="bg-accent hover:bg-accent/90">
+    <Button type="submit" size="icon" disabled={isPending} aria-label="Отправить сообщение" className="bg-accent hover:bg-accent/90">
       {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
     </Button>
   );
@@ -46,7 +46,7 @@ function LogMessage({ logs }: { logs: string[] }) {
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
             {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            Technical Details
+            Технические детали
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent asChild>
@@ -67,7 +67,7 @@ function BotMessage({ content, logs }: { content: React.ReactNode, logs?: string
     );
 }
 
-export default function ChatUI() { // Changed to export default
+export default function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -78,7 +78,7 @@ export default function ChatUI() { // Changed to export default
     const unsubscribe = onAuthStateChange((user) => {
       setCurrentUser(user);
       if (!user) {
-        setMessages([]); // Clear messages on logout
+        setMessages([]);
       }
     });
     return () => unsubscribe();
@@ -95,7 +95,7 @@ export default function ChatUI() { // Changed to export default
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!currentUser) return; // Prevent sending messages if not logged in
+    if (!currentUser) return;
     const trimmedInput = input.trim();
     if (!trimmedInput || isPending) return;
 
@@ -108,7 +108,7 @@ export default function ChatUI() { // Changed to export default
 
     const formData = new FormData();
     formData.append('message', trimmedInput);
-    formData.append('sessionId', currentUser.uid); // Using user UID as session ID
+    formData.append('sessionId', currentUser.uid);
 
     startTransition(async () => {
       const result = await sendMessage(null, formData);
@@ -121,10 +121,10 @@ export default function ChatUI() { // Changed to export default
         logs = result.logs
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
-        botContent = <span className="text-destructive">Error: {errorString}</span>;
+        botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
         logs = result.logs;
       } else {
-        botContent = <span className="text-destructive">An unknown error occurred.</span>;
+        botContent = <span className="text-destructive">Произошла неизвестная ошибка.</span>;
       }
       
       const botMessage: Message = {
@@ -141,9 +141,9 @@ export default function ChatUI() { // Changed to export default
 
   return (
     <div className="w-full max-w-2xl mx-auto relative">
-        <Card className="w-full h-[90vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
+        <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
             <CardHeader className="border-b">
-                <CardTitle className="font-headline text-center text-2xl">Webhook Chat</CardTitle>
+                <CardTitle className="font-headline text-center text-2xl">ИИ Антон</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-6">
                 <ScrollArea className="h-full">
@@ -151,15 +151,15 @@ export default function ChatUI() { // Changed to export default
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
-                            <p className="mt-4 text-lg font-semibold">Please log in to start chatting.</p>
+                            <p className="mt-4 text-lg font-semibold">Пожалуйста, войдите, чтобы начать чат.</p>
                         </div>
                     ) : (
                     <> 
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <Bot className="h-12 w-12 text-muted-foreground"/>
-                                <p className="mt-4 text-lg font-semibold">Chat has started.</p>
-                                <p className="text-sm text-muted-foreground">Send your first message to begin.</p>
+                                <p className="mt-4 text-lg font-semibold">Чат начат.</p>
+                                <p className="text-sm text-muted-foreground">Отправьте ваше первое сообщение.</p>
                             </div>
                         )}
                         {messages.map((message) => (
@@ -214,7 +214,7 @@ export default function ChatUI() { // Changed to export default
                 <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={currentUser ? "Type a message..." : "Please log in first"}
+                    placeholder={currentUser ? "Введите сообщение..." : "Пожалуйста, сначала войдите"}
                     autoComplete="off"
                     disabled={isPending || !currentUser}
                     className="text-base"

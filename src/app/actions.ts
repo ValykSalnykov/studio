@@ -2,21 +2,32 @@
 
 import { z } from 'zod';
 
-const webhookUrl = process.env.WEBHOOK_URL || 'https://planfix-to-syrve.com:8443/webhook-test/23860823-4ec5-4723-9b55-d8e13285884a';
+const webhookUrl = process.env.WEBHOOK_URL;
 
 const messageSchema = z.object({
-  message: z.string().min(1, 'Message cannot be empty.'),
-  sessionId: z.string().min(1, 'Session ID is required'),
+  message: z.string().min(1, 'Сообщение не может быть пустым.'),
+  sessionId: z.string().min(1, 'Требуется идентификатор сессии'),
 });
 
 type ActionState = {
   logs?: string[];
-  response?: string; // AI Message
+  response?: string;
   error?: string | string[];
 } | null;
 
 export async function sendMessage(prevState: ActionState, formData: FormData): Promise<ActionState> {
-  const log: string[] = ['[1/6] Server action started.'];
+  const log: string[] = ['[1/6] Запуск серверного действия.'];
+
+  if (!webhookUrl) {
+    const errorMessage = 'Переменная окружения WEBHOOK_URL не установлена. Пожалуйста, установите ее, чтобы чат заработал.';
+    log.push(`[FAIL] ${errorMessage}`);
+    console.error(errorMessage);
+    return {
+      logs: log,
+      error: errorMessage,
+    };
+  }
+  log.push(`[2/6] Используется webhook URL: ${webhookUrl}`);
 
   const validatedFields = messageSchema.safeParse({
     message: formData.get('message'),
@@ -24,74 +35,72 @@ export async function sendMessage(prevState: ActionState, formData: FormData): P
   });
 
   if (!validatedFields.success) {
-    log.push('[FAIL] Validation failed.');
+    const errorMessage = validatedFields.error.flatten().fieldErrors.message?.join(', ') || 'Неизвестная ошибка валидации.';
+    log.push(`[FAIL] Валидация не пройдена: ${errorMessage}`);
     return {
       logs: log,
-      error: validatedFields.error.flatten().fieldErrors.message || 'Unknown validation error.',
+      error: errorMessage,
     };
   }
-  log.push(`[2/6] Message validated: "${validatedFields.data.message}"`);
-  log.push(`[2/6] Session ID validated: "${validatedFields.data.sessionId}"`);
-  
-  if (!webhookUrl) {
-    log.push('[FAIL] Webhook URL is not configured correctly.');
-    return {
-      logs: log,
-      error: 'Webhook URL is not configured. Please set WEBHOOK_URL in your .env.local file.',
-    };
-  }
-  log.push(`[3/6] Using webhook URL: ${webhookUrl}`);
+  log.push(`[3/6] Сообщение и ID сессии прошли валидацию.`);
 
   try {
-    log.push('[4/6] Attempting to send POST request with fetch...');
+    log.push('[4/6] Попытка отправки POST-запроса...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-         message: validatedFields.data.message,
-         sessionId: validatedFields.data.sessionId,
-    }),
+        message: validatedFields.data.message,
+        sessionId: validatedFields.data.sessionId,
+      }),
+      signal: controller.signal,
     });
-    log.push(`[5/6] Received response with status: ${response.status}`);
 
+    clearTimeout(timeoutId);
+
+    log.push(`[5/6] Получен ответ со статусом: ${response.status}`);
     const responseText = await response.text();
-    log.push(`[6/6] Raw response body received: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
-    
+    log.push(`[6/6] Получено тело ответа: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`);
+
     if (!response.ok) {
-        return {
-          logs: log,
-          error: `Request failed. Status: ${response.status}. Body: ${responseText}`,
-        };
+      return {
+        logs: log,
+        error: `Сетевой запрос не удался. Статус: ${response.status}. Ответ: ${responseText}`,
+      };
     }
 
     let aiMessage: string;
     try {
-        const responseData = JSON.parse(responseText);
-        if (responseData.output) {
-            aiMessage = responseData.output;
-        } else {
-            aiMessage = responseText;
-        }
+      const responseData = JSON.parse(responseText);
+      if (responseData.output) {
+        aiMessage = responseData.output;
+      } else {
+        aiMessage = JSON.stringify(responseData);
+      }
     } catch (e) {
-        aiMessage = responseText;
+      aiMessage = responseText;
     }
-    
+
     return {
-        logs: log,
-        response: aiMessage,
+      logs: log,
+      response: aiMessage,
     };
 
   } catch (error: unknown) {
-    log.push('[FAIL] An error occurred during the fetch call.');
+    log.push('[FAIL] Произошла ошибка во время выполнения запроса.');
     console.error('Fetch error:', error);
     if (error instanceof Error) {
-        return { logs: log, error: `Failed to send message: ${error.message}` };
+      if (error.name === 'AbortError') {
+        return { logs: log, error: 'Запрос занял слишком много времени (более 20 секунд) и был прерван.' };
+      }
+      return { logs: log, error: `Не удалось отправить сообщение: ${error.message}` };
     }
     return {
       logs: log,
-      error: 'An unknown network error occurred.',
+      error: 'Произошла неизвестная сетевая ошибка.',
     };
   }
 }
