@@ -23,9 +23,9 @@ const links = [
     icon: MessageSquare,
   },
   {
-    label: 'Шаблонайзер (soon)',
+    href: '/templator',
+    label: 'Шаблонизатор',
     icon: LayoutTemplate,
-    disabled: true, // Флаг неактивности
   },
   {
     href: '/deep-search',
