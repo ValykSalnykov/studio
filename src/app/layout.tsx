@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Sidebar } from '@/components/sidebar';
+import UserAuth from '@/components/user-auth';
 
 export const metadata: Metadata = {
   title: 'ИИ Антон',
@@ -23,8 +24,13 @@ export default function RootLayout({
       <body className="font-body antialiased bg-gray-900">
         <div className="flex h-screen overflow-hidden">
             <Sidebar />
-            <main className="flex-1 relative flex items-center justify-center p-6 overflow-y-auto">
-                {children}
+            <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
+                <header className="flex justify-end sticky top-0 bg-gray-900 z-10 p-4">
+                    <UserAuth />
+                </header>
+                <div className="flex-1 flex items-center justify-center">
+                    {children}
+                </div>
             </main>
         </div>
         <Toaster />
