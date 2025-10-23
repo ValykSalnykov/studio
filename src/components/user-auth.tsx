@@ -59,17 +59,17 @@ export default function UserAuth() {
     <div>
       {user ? (
         <div className='flex items-center space-x-4'>
-          <p className='text-sm text-gray-500'>Welcome, {user.email}</p>
-          <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+          <p className='text-sm text-gray-500'>Привет, {user.email}</p>
+          <Button variant="outline" onClick={handleSignOut}>Выход</Button>
         </div>
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Login / Sign Up</Button>
+            <Button variant="outline">Вход / Регистрация</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Authenticate</DialogTitle>
+              <DialogTitle>Логин</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <Input
@@ -86,8 +86,8 @@ export default function UserAuth() {
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className='flex justify-between'>
-                <Button onClick={handleSignIn}>Sign In</Button>
-                <Button onClick={handleSignUp}>Sign Up</Button>
+                <Button onClick={handleSignIn}>Вход</Button>
+                <Button onClick={handleSignUp}>Регистрация</Button>
               </div>
             </div>
           </DialogContent>

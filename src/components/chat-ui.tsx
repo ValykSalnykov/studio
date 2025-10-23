@@ -196,7 +196,7 @@ export default function ChatUI() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto relative">
+    <div className="w-full max-w-4xl mx-auto relative">
         <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-center text-2xl">ИИ Антон</CardTitle>
@@ -235,7 +235,7 @@ export default function ChatUI() {
                             )}
                             <div
                             className={cn(
-                                'max-w-xs lg:max-w-md rounded-lg px-4 py-2 shadow-md',
+                                'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
                                 message.role === 'user'
                                 ? 'bg-primary text-primary-foreground rounded-br-none'
                                 : 'bg-muted text-card-foreground rounded-bl-none'
