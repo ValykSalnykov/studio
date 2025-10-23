@@ -76,6 +76,9 @@ export default function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isFeedbackMode, setIsFeedbackMode] = useState(false);
+  const [siteEnabled, setSiteEnabled] = useState(false);
+  const [bzEnabled, setBzEnabled] = useState(false);
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
 
   const toggleFeedbackMode = () => {
     setIsFeedbackMode(prev => !prev);
@@ -188,7 +191,6 @@ export default function ChatUI() {
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <Bot className="h-12 w-12 text-muted-foreground"/>
-                                <p className="mt-4 text-lg font-semibold">Чат начат.</p>
                                 <p className="text-sm text-muted-foreground">Отправьте ваше первое сообщение.</p>
                             </div>
                         )}
@@ -236,7 +238,7 @@ export default function ChatUI() {
                 </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="border-t pt-6">
+            <CardFooter className="border-t pt-4">
                 <div className="w-full">
                     {isFeedbackMode && (
                         <div className="space-y-2 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
@@ -246,11 +248,49 @@ export default function ChatUI() {
                             <Input
                                 value={caseNumber}
                                 onChange={handleCaseNumberChange}
-                                placeholder="Введите номер кейса(ов) через запятую"
+                                placeholder="Введите номер кейса"
                                 autoComplete="off"
                                 disabled={isPending || !currentUser}
                                 className="text-base"
                             />
+                        </div>
+                    )}
+                    {!isFeedbackMode && (
+                        <div className="flex items-center gap-3 mb-3">
+                             <span className="text-sm font-medium text-muted-foreground">Источник кейсов:</span>
+                            <Button
+                                onClick={() => setSiteEnabled(!siteEnabled)}
+                                className={cn(
+                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                    siteEnabled
+                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                                )}
+                            >
+                                Сайт
+                            </Button>
+                            <Button
+                                onClick={() => setBzEnabled(!bzEnabled)}
+                                className={cn(
+                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                    bzEnabled
+                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                                )}
+                            >
+                                БЗ
+                            </Button>
+                            <Button
+                                onClick={() => setTelegramEnabled(!telegramEnabled)}
+                                className={cn(
+                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                    telegramEnabled
+                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                                )}
+                            >
+                                Телеграм
+                            </Button>
                         </div>
                     )}
                     <form
