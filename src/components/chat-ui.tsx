@@ -71,6 +71,7 @@ function BotMessage({ content, logs }: { content: React.ReactNode, logs?: string
 export default function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [caseNumber, setCaseNumber] = useState('');
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -79,7 +80,16 @@ export default function ChatUI() {
   const toggleFeedbackMode = () => {
     setIsFeedbackMode(prev => !prev);
     setInput('');
+    setCaseNumber('');
   }
+
+  const handleCaseNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    const regex = /^[0-9,]*$/;
+    if (regex.test(value)) {
+        setCaseNumber(value);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -105,17 +115,22 @@ export default function ChatUI() {
     e.preventDefault();
     if (!currentUser) return;
     const trimmedInput = input.trim();
-    if (!trimmedInput || isPending) return;
+    if ((!trimmedInput && !caseNumber) || isPending) return;
+
+    const userMessageContent = isFeedbackMode
+      ? `Отзыв по кейсу №${caseNumber || 'N/A'}: ${trimmedInput}`
+      : trimmedInput;
 
     const userMessage: Message = {
       id: Date.now(),
       role: 'user',
-      content: isFeedbackMode ? `Отзыв: ${trimmedInput}` : trimmedInput,
+      content: userMessageContent,
     };
     setMessages(prev => [...prev, userMessage]);
 
     const formData = new FormData();
-    formData.append('message', trimmedInput);
+    const webhookMessage = isFeedbackMode ? `Кейс №${caseNumber}: ${trimmedInput}` : trimmedInput;
+    formData.append('message', webhookMessage);
     formData.append('sessionId', currentUser.uid);
     if(isFeedbackMode) {
         formData.append('review', 'true');
@@ -148,6 +163,7 @@ export default function ChatUI() {
     });
 
     setInput('');
+    setCaseNumber('');
     if (isFeedbackMode) {
         toggleFeedbackMode();
     }
@@ -223,8 +239,18 @@ export default function ChatUI() {
             <CardFooter className="border-t pt-6">
                 <div className="w-full">
                     {isFeedbackMode && (
-                        <div className="text-xs text-muted-foreground mb-2 px-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-                            Предоставь описание выполненных действий по конкретному кейсу (с указанием его номера если можешь) и полученный результат от выполненных действий.
+                        <div className="space-y-2 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                            <p className="text-xs text-muted-foreground px-2">
+                                Предоставь описание выполненных действий по кейсу и полученный результат от выполненных действий.
+                            </p>
+                            <Input
+                                value={caseNumber}
+                                onChange={handleCaseNumberChange}
+                                placeholder="Введите номер кейса(ов) через запятую"
+                                autoComplete="off"
+                                disabled={isPending || !currentUser}
+                                className="text-base"
+                            />
                         </div>
                     )}
                     <form

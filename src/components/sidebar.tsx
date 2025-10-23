@@ -11,6 +11,10 @@ import {
   CaseSensitive, 
   ChevronDown, 
   ChevronRight,
+  Bug,
+  BrainCircuit,
+  Binoculars,
+  SearchCheck,
   LayoutTemplate, // Иконка для Шаблонайзера
   Shield,         // Иконка для Админ панели
 } from 'lucide-react';
@@ -20,25 +24,25 @@ const links = [
   {
     href: '/',
     label: 'ИИ Антон',
-    icon: MessageSquare,
+    icon: BrainCircuit,
   },
   {
     href: '/templator',
     label: 'Шаблонизатор',
-    icon: LayoutTemplate,
+    icon: Bug,
   },
   {
     href: '/deep-search',
     label: 'Deep Search',
-    icon: Search,
+    icon: Binoculars,
   },
   {
     label: 'Проверка кейсов',
-    icon: CaseSensitive,
+    icon: SearchCheck,
     subLinks: [
       { href: '/cases/working', label: 'Рабочие' },
-      { href: '/cases/complex', label: 'Сложные' },
-      { href: '/cases/pending', label: 'Отложенные' },
+      { href: '/cases/complex', label: 'Сложные (soon)' },
+      { href: '/cases/pending', label: 'Отложенные (soon)' },
     ],
   },
   {
@@ -133,7 +137,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-gray-800 md:bg-gray-900 md:p-4 text-white">
        <div className="mb-8">
-        <h1 className="text-2xl font-bold">Anton AI</h1>
+        <h1 className="text-2xl font-bold">DAO AI</h1>
       </div>
       <nav className="flex flex-col space-y-2">
         {links.map((link, index) => (
