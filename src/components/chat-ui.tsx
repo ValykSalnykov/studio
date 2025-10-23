@@ -30,7 +30,18 @@ type Message = {
   role: 'user' | 'bot';
   content: React.ReactNode;
   logs?: string[];
+  typing?: boolean;
 };
+
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+      <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+      <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" />
+    </div>
+  );
+}
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
   return (
@@ -59,7 +70,10 @@ function LogMessage({ logs }: { logs: string[] }) {
   );
 }
 
-function BotMessage({ content, logs }: { content: React.ReactNode, logs?: string[] }) {
+function BotMessage({ content, logs, typing }: { content: React.ReactNode, logs?: string[], typing?: boolean }) {
+    if (typing) {
+        return <TypingIndicator />;
+    }
     return (
         <div>
             <div className="text-sm break-words">{content}</div>
@@ -129,7 +143,15 @@ export default function ChatUI() {
       role: 'user',
       content: userMessageContent,
     };
-    setMessages(prev => [...prev, userMessage]);
+    
+    const typingMessage: Message = {
+        id: Date.now() + 1,
+        role: 'bot',
+        content: '',
+        typing: true,
+    }
+
+    setMessages(prev => [...prev, userMessage, typingMessage]);
 
     const formData = new FormData();
     const webhookMessage = isFeedbackMode ? `Кейс №${caseNumber}: ${trimmedInput}` : trimmedInput;
@@ -162,7 +184,8 @@ export default function ChatUI() {
         content: botContent,
         logs: logs,
       };
-      setMessages(prev => [...prev, botMessage]);
+      
+      setMessages(prev => [...prev.filter(m => !m.typing), botMessage]);
     });
 
     setInput('');
@@ -191,6 +214,7 @@ export default function ChatUI() {
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <Bot className="h-12 w-12 text-muted-foreground"/>
+                                <p className="mt-4 text-lg font-semibold">Чат начат.</p>
                                 <p className="text-sm text-muted-foreground">Отправьте ваше первое сообщение.</p>
                             </div>
                         )}
@@ -218,7 +242,7 @@ export default function ChatUI() {
                             )}
                             >
                                 {message.role === 'bot' ? (
-                                    <BotMessage content={message.content} logs={message.logs} />
+                                    <BotMessage content={message.content} logs={message.logs} typing={message.typing} />
                                 ) : (
                                     <div className="text-sm break-words">{message.content}</div>
                                 )}
@@ -257,7 +281,7 @@ export default function ChatUI() {
                     )}
                     {!isFeedbackMode && (
                         <div className="flex items-center gap-3 mb-3">
-                             <span className="text-sm font-medium text-muted-foreground">Источник кейсов:</span>
+                             <span className="text-sm font-medium text-muted-foreground">Источник:</span>
                             <Button
                                 onClick={() => setSiteEnabled(!siteEnabled)}
                                 className={cn(
