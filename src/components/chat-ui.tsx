@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, FilePlus2 } from 'lucide-react';
 import { sendMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -93,6 +93,10 @@ export default function ChatUI() {
   const [siteEnabled, setSiteEnabled] = useState(false);
   const [bzEnabled, setBzEnabled] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
+
+  const handleNewChat = () => {
+    setMessages([]);
+  };
 
   const toggleFeedbackMode = () => {
     setIsFeedbackMode(prev => !prev);
@@ -198,8 +202,23 @@ export default function ChatUI() {
   return (
     <div className="w-full max-w-4xl mx-auto relative">
         <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
-            <CardHeader className="border-b">
-                <CardTitle className="font-headline text-center text-2xl">ИИ Антон</CardTitle>
+            <CardHeader className="border-b flex items-center p-4">
+                <div className="flex-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleNewChat}
+                        disabled={!currentUser || messages.length === 0}
+                        className="text-muted-foreground"
+                    >
+                        <FilePlus2 className="h-4 w-4 mr-2" />
+                        Новый чат
+                    </Button>
+                </div>
+                <div className="flex-1 text-center">
+                    <CardTitle className="font-headline text-2xl">ИИ Антон</CardTitle>
+                </div>
+                <div className="flex-1" />
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-6">
                 <ScrollArea className="h-full">
@@ -214,6 +233,7 @@ export default function ChatUI() {
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <Bot className="h-12 w-12 text-muted-foreground"/>
+                                <p className="mt-4 text-lg font-semibold">Чат начат.</p>
                                 <p className="text-sm text-muted-foreground">Отправьте ваше первое сообщение.</p>
                             </div>
                         )}
