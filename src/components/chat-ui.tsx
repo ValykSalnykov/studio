@@ -202,24 +202,25 @@ export default function ChatUI() {
   return (
     <div className="w-full max-w-4xl mx-auto relative">
         <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
-            <CardHeader className="border-b flex items-center p-4">
-                <div className="flex-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleNewChat}
-                        disabled={!currentUser || messages.length === 0}
-                        className="text-muted-foreground"
-                    >
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Новый чат
-                    </Button>
-                </div>
-                <div className="flex-1 text-center">
-                    <CardTitle className="font-headline text-2xl">ИИ Антон</CardTitle>
-                </div>
-                <div className="flex-1" />
-            </CardHeader>
+        <CardHeader className="border-b p-4">
+          <div className="flex w-full items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNewChat}
+                disabled={!currentUser || messages.length === 0}
+                className="text-muted-foreground"
+              >
+                <FilePlus2 className="h-4 w-4 mr-2" />
+                Новый чат
+              </Button>
+            </div>
+            <CardTitle className="font-headline text-2xl">
+              ИИ Антон
+            </CardTitle>
+          </div>
+        </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-6">
                 <ScrollArea className="h-full">
                 <div className="space-y-6 pr-4">
