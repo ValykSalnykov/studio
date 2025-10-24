@@ -153,7 +153,7 @@ export default function RabochiePage() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-400">Кейсы не найдены.</p>
+        <p className="text-gray-400">Кейсы грузятся, секундочку....</p>
       )}
 
       {selectedItem && parsedSelectedItem && (

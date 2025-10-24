@@ -234,7 +234,6 @@ export default function ChatUI() {
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <Bot className="h-12 w-12 text-muted-foreground"/>
-                                <p className="mt-4 text-lg font-semibold">Чат начат.</p>
                                 <p className="text-sm text-muted-foreground">Отправьте ваше первое сообщение.</p>
                             </div>
                         )}

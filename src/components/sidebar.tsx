@@ -46,7 +46,7 @@ const links = [
     ],
   },
   {
-    label: 'Админ панель (soon)',
+    label: 'Настройки (soon)',
     icon: Shield,
     disabled: true, // Флаг неактивности
   },
