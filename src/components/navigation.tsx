@@ -6,17 +6,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import UserAuth from '@/components/user-auth';
-import { Download } from 'lucide-react';
+import { Download, Bot } from 'lucide-react';
 
 // Defines the entire navigation structure
 const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[] }> = {
   'ИИ': {
+    icon: Bot,
     subLinks: [
       { href: '/', label: 'ИИ Ментор' },
       { href: '/templator', label: 'Шаблонизатор' },
       { href: '/deep-search', label: 'Deep Search' },
       { href: '/cases/working', label: 'Робочі кейси' },
-      { href: '/cases/complex', label: 'Складні кейси (скоро)', disabled: true },
+      { href: '/cases/complex', label: 'Складні кейси'},
+      { href: '/cases/pending', label: 'Отложенные'},
     ]
   },
   // 'Syrve Install' is a main link but has no sub-menu
@@ -56,7 +58,7 @@ export function Navigation() {
       <div className="container mx-auto flex items-center justify-between p-4">
         {/* Left Section */}
         <div className="w-1/3">
-           <h1 className="text-xl font-bold">Dao planner</h1>
+           <h1 className="text-xl font-bold">DAO apps</h1>
         </div>
 
         {/* Centered Main Navigation */}

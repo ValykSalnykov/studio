@@ -44,7 +44,7 @@ function TypingIndicator() {
 
 function SubmitButton({ isPending }: { isPending: boolean }) {
   return (
-    <Button type="submit" size="icon" disabled={isPending} aria-label="Отправить сообщение" className="bg-accent hover:bg-accent/90">
+    <Button type="submit" size="icon" disabled={isPending} aria-label="Отправить сообщение" className="bg-indigo-800 hover:bg-indigo-700 text-white">
       {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
     </Button>
   );

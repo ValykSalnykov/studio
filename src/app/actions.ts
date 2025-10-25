@@ -48,7 +48,7 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
     try {
       log.push('[4/6] Попытка отправки POST-запроса...');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
   
       const case_numbers = formData.getAll('case_numbers').filter(cn => typeof cn === 'string' && cn.length > 0);
 
@@ -120,7 +120,7 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
       console.error('Fetch error:', error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          return { logs: log, error: 'Запрос занял слишком много времени (более 20 секунд) и был прерван.' };
+          return { logs: log, error: 'Запрос занял слишком много времени (более 60 секунд) и был прерван.' };
         }
         return { logs: log, error: `Не удалось отправить сообщение: ${error.message}` };
       }

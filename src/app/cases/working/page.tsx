@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -147,7 +146,7 @@ export default function RabochiePage() {
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-6 text-gray-200">Рабочие кейсы</h1>
+      <h1 className="text-3xl font-bold mb-6 text-black-400 text-center">Рабочие кейсы</h1>
       {data.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.map((item) => (

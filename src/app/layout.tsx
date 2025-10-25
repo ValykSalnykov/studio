@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from '@/components/navigation';
 
 export const metadata: Metadata = {
-  title: 'Dao planner',
+  title: 'DAO apps',
   description: 'Чат-интерфейс для ИИ Антона.',
 };
 
