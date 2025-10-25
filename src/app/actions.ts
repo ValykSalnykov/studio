@@ -50,13 +50,32 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
   
-      const requestBody: { message: string, sessionId: string, review?: boolean } = {
+      const case_numbers = formData.getAll('case_numbers').filter(cn => typeof cn === 'string' && cn.length > 0);
+
+      const requestBody: {
+          message: string,
+          sessionId: string,
+          review: boolean,
+          review_message?: string,
+          site: boolean,
+          bz: boolean,
+          telegram: boolean,
+          case_numbers?: string[]
+      } = {
           message: validatedFields.data.message,
           sessionId: validatedFields.data.sessionId,
+          review: formData.get('review') === 'true',
+          site: formData.get('site') === 'true',
+          bz: formData.get('bz') === 'true',
+          telegram: formData.get('telegram') === 'true',
       };
-  
-      if (formData.get('review') === 'true') {
-          requestBody.review = true;
+
+      if (requestBody.review) {
+          requestBody.review_message = formData.get('review_message') as string;
+      }
+
+      if (case_numbers.length > 0) {
+        requestBody.case_numbers = case_numbers as string[];
       }
   
       const response = await fetch(url, {

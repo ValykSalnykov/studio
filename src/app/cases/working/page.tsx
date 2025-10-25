@@ -58,6 +58,16 @@ export default function RabochiePage() {
   const [editedQuestion, setEditedQuestion] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
 
+  const [selectedSources, setSelectedSources] = useState({
+    site: false,
+    youtube: false,
+    telegram: false,
+    instagram: false,
+  });
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
+
   useEffect(() => {
     async function getTelegramCheckData() {
       const { data, error } = await supabase.from('telegramcheck').select('id, content');

@@ -12,7 +12,7 @@ import { Download } from 'lucide-react';
 const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[] }> = {
   'ИИ': {
     subLinks: [
-      { href: '/', label: 'Користувач' },
+      { href: '/', label: 'ИИ Ментор' },
       { href: '/templator', label: 'Шаблонизатор' },
       { href: '/deep-search', label: 'Deep Search' },
       { href: '/cases/working', label: 'Робочі кейси' },

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
@@ -57,7 +56,7 @@ function LogMessage({ logs }: { logs: string[] }) {
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-2">
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs">
-            {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />} 
             Технические детали
         </Button>
       </CollapsibleTrigger>
@@ -158,11 +157,26 @@ export default function ChatUI() {
     setMessages(prev => [...prev, userMessage, typingMessage]);
 
     const formData = new FormData();
-    const webhookMessage = isFeedbackMode ? `Кейс №${caseNumber}: ${trimmedInput}` : trimmedInput;
-    formData.append('message', webhookMessage);
+    formData.append('message', trimmedInput);
     formData.append('sessionId', currentUser.uid);
-    if(isFeedbackMode) {
-        formData.append('review', 'true');
+
+    // Sources
+    formData.append('site', String(siteEnabled));
+    formData.append('bz', String(bzEnabled));
+    formData.append('telegram', String(telegramEnabled));
+
+    // Review mode
+    formData.append('review', String(isFeedbackMode));
+    if (isFeedbackMode) {
+        formData.append('review_message', trimmedInput);
+        if (caseNumber) {
+            caseNumber.split(',').forEach(cn => {
+                const trimmedCn = cn.trim();
+                if (trimmedCn) {
+                    formData.append('case_numbers', trimmedCn);
+                }
+            });
+        }
     }
 
     startTransition(async () => {
@@ -217,7 +231,7 @@ export default function ChatUI() {
               </Button>
             </div>
             <CardTitle className="font-headline text-2xl">
-              ИИ Антон
+              ИИ Ментор
             </CardTitle>
           </div>
         </CardHeader>
