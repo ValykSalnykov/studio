@@ -44,7 +44,6 @@ export function Navigation() {
     if (pathname.startsWith('/cases')) return 'Cases';
     if (pathname === '/syrve-install') return 'Syrve Install';
     if (pathname === '/time-tracker') return 'Time Tracker';
-    // Default to 'AI Tools' for any other relevant path
     if (['/', '/ai-mentor', '/templator', '/deep-search'].includes(pathname)) {
       return 'AI Tools';
     }
@@ -69,17 +68,21 @@ export function Navigation() {
         </div>
 
         {!isHomePage && (
-          <div className="w-1/3 flex justify-center items-center space-x-8">
+          <div className="w-1/3 flex justify-center items-center space-x-4">
             {mainLinks.map((label) => {
               const linkConfig = navigationConfig[label];
+              const commonClasses = 'flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200';
+              const activeClasses = 'bg-black/25 text-amber-400 shadow-inner';
+              const inactiveClasses = 'hover:bg-black/20 text-white/90';
+
               if (linkConfig.subLinks.length > 0) {
                 return (
                   <button
                     key={label}
                     onClick={() => setActiveMainLink(label)}
                     className={cn(
-                      'flex items-center space-x-1.5 text-sm font-medium',
-                      activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
+                      commonClasses,
+                      activeMainLink === label ? activeClasses : inactiveClasses
                     )}
                   >
                     {linkConfig.icon && <linkConfig.icon size={16} />}
@@ -93,8 +96,8 @@ export function Navigation() {
                       href={linkConfig.href || '#'}
                       onClick={() => setActiveMainLink(label)}
                       className={cn(
-                          'flex items-center space-x-1.5 text-sm font-medium',
-                          activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
+                        commonClasses,
+                        activeMainLink === label ? activeClasses : inactiveClasses
                       )}
                    >
                       {linkConfig.icon && <linkConfig.icon size={16} />}

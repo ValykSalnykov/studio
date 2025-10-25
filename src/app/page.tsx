@@ -53,7 +53,7 @@ export default function Home() {
           <MotionLink
             key={feature.name}
             href={feature.href}
-            className="group relative block p-8 h-18 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-sm"
+            className="group relative block p-8 h-48 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-lg border border-gray-700 transition-all duration-300 hover:border-amber-400 hover:shadow-amber-400/20"
             whileHover={{ scale: 1.05, y: -5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
