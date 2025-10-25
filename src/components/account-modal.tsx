@@ -23,10 +23,10 @@ export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOp
   const [role, setRole] = useState<string | null>(null);
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="bg-gray-900 text-gray-50 border-gray-700">
         <AlertDialogHeader>
           <AlertDialogTitle>Мій аккаунт</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="text-gray-400">
             Тут ви можете переглянути дані свого аккаунту.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -36,10 +36,10 @@ export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOp
             <div>
               <Label htmlFor="role-select">Роль</Label>
               <Select onValueChange={setRole} defaultValue={role ?? undefined}>
-                <SelectTrigger id="role-select">
+                <SelectTrigger id="role-select" className="w-full bg-gray-800 border-gray-600 text-gray-50">
                   <SelectValue placeholder="Виберіть роль" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-800 text-gray-50 border-gray-600">
                   <SelectItem value="mentor">Ментор</SelectItem>
                   <SelectItem value="team-lead">Тим-лид</SelectItem>
                   <SelectItem value="on-duty">Дежурный</SelectItem>
@@ -49,7 +49,7 @@ export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOp
           </div>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel>Закрити</AlertDialogCancel>
+          <AlertDialogCancel className="bg-gray-700 text-gray-50 hover:bg-gray-600 border-0">Закрити</AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
