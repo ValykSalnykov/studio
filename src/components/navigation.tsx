@@ -5,113 +5,113 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import UserAuth from '@/components/user-auth';
-import { Download, Bot, Briefcase } from 'lucide-react';
+import { Download, Bot, FolderKanban, Clock } from 'lucide-react';
 
 // Defines the entire navigation structure
 const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[] }> = {
   'AI Tools': {
     icon: Bot,
     subLinks: [
-      { href: '/', label: 'ИИ Ментор' },
+      { href: '/ai-mentor', label: 'ИИ Ментор' },
       { href: '/templator', label: 'Шаблонизатор' },
       { href: '/deep-search', label: 'Deep Search' },
     ]
   },
   'Cases': {
-    icon: Briefcase,
+    icon: FolderKanban,
     subLinks: [
         { href: '/cases/working', label: 'Робочі кейси' },
         { href: '/cases/complex', label: 'Складні кейси'},
         { href: '/cases/pending', label: 'Отложенные'},
       ]
   },
-  // 'Syrve Install' is a main link but has no sub-menu
   'Syrve Install': {
-    href: '#', // The actual link for Syrve Install
+    href: '/syrve-install',
     icon: Download,
     subLinks: [] 
+  },
+  'Time Tracker': {
+    href: '/time-tracker',
+    icon: Clock,
+    subLinks: []
   }
 };
 
 export function Navigation() {
   const pathname = usePathname();
 
-  // Determine the initial active main link by checking if the current path matches any sub-link
   const getInitialMainLink = () => {
-    for (const mainLabel in navigationConfig) {
-      if (navigationConfig[mainLabel].subLinks.some(sub => !sub.disabled && sub.href === pathname)) {
-        return mainLabel;
-      }
+    if (pathname.startsWith('/cases')) return 'Cases';
+    if (pathname === '/syrve-install') return 'Syrve Install';
+    if (pathname === '/time-tracker') return 'Time Tracker';
+    // Default to 'AI Tools' for any other relevant path
+    if (['/', '/ai-mentor', '/templator', '/deep-search'].includes(pathname)) {
+      return 'AI Tools';
     }
-    return 'AI Tools'; // Default to 'Инструменты ИИ' if no match is found
+    return 'AI Tools'; // Fallback
   };
   
-  const [activeMainLink, setActiveMainLink] = useState('AI Tools');
+  const [activeMainLink, setActiveMainLink] = useState(getInitialMainLink);
 
-  // Effect to set the active main link on path change
   useEffect(() => {
     setActiveMainLink(getInitialMainLink());
   }, [pathname]);
 
   const mainLinks = Object.keys(navigationConfig);
   const currentSubLinks = navigationConfig[activeMainLink]?.subLinks || [];
+  const isHomePage = pathname === '/';
 
   return (
     <header className="bg-[#1A237E] text-white shadow-md">
-      {/* Top (blue) bar */}
       <div className="container mx-auto flex items-center justify-between p-4">
-        {/* Left Section */}
         <div className="w-1/3">
-           <h1 className="text-xl font-bold">DAO apps</h1>
+           <Link href="/" className="text-xl font-bold">DAO apps</Link>
         </div>
 
-        {/* Centered Main Navigation */}
-        <div className="w-1/3 flex justify-center items-center space-x-8">
-          {mainLinks.map((label) => {
-            const linkConfig = navigationConfig[label];
-            // If the link has sub-links, it's a button to change state.
-            // Otherwise, it's a direct link.
-            if (linkConfig.subLinks.length > 0) {
-              return (
-                <button
-                  key={label}
-                  onClick={() => setActiveMainLink(label)}
-                  className={cn(
-                    'flex items-center space-x-1.5 text-sm font-medium',
-                    activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
-                  )}
-                >
-                  {linkConfig.icon && <linkConfig.icon size={16} />}
-                  <span>{label}</span>
-                </button>
-              );
-            } else {
-              return (
-                 <Link
+        {!isHomePage && (
+          <div className="w-1/3 flex justify-center items-center space-x-8">
+            {mainLinks.map((label) => {
+              const linkConfig = navigationConfig[label];
+              if (linkConfig.subLinks.length > 0) {
+                return (
+                  <button
                     key={label}
-                    href={linkConfig.href || '#'}
                     onClick={() => setActiveMainLink(label)}
                     className={cn(
-                        'flex items-center space-x-1.5 text-sm font-medium',
-                        activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
+                      'flex items-center space-x-1.5 text-sm font-medium',
+                      activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
                     )}
-                 >
+                  >
                     {linkConfig.icon && <linkConfig.icon size={16} />}
                     <span>{label}</span>
-                </Link>
-              )
-            }
-          })}
-        </div>
+                  </button>
+                );
+              } else {
+                return (
+                   <Link
+                      key={label}
+                      href={linkConfig.href || '#'}
+                      onClick={() => setActiveMainLink(label)}
+                      className={cn(
+                          'flex items-center space-x-1.5 text-sm font-medium',
+                          activeMainLink === label ? 'text-amber-400' : 'hover:text-gray-200'
+                      )}
+                   >
+                      {linkConfig.icon && <linkConfig.icon size={16} />}
+                      <span>{label}</span>
+                  </Link>
+                )
+              }
+            })}
+          </div>
+        )}
         
-        {/* Right-aligned User Auth */}
         <div className="w-1/3 flex justify-end">
             <UserAuth />
         </div>
       </div>
 
-      {/* Bottom (orange) bar - Conditionally rendered Sub-navigation */}
-      {currentSubLinks.length > 0 && (
+      {!isHomePage && currentSubLinks.length > 0 && (
         <div className="bg-[#D28F00]">
           <nav className="container mx-auto flex items-center justify-center space-x-6 p-2 text-sm font-medium">
             {currentSubLinks.map((link) => (
