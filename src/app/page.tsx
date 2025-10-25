@@ -1,39 +1,39 @@
-"use client";
-import { motion } from "framer-motion";
-import Link from "next/link";
+'use client';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 import {
   Computer,
   FileText,
   Clock,
   Download,
-} from "lucide-react";
+} from 'lucide-react';
 
 const MotionLink = motion(Link);
 
 const features = [
   {
-    name: "AI Tools",
-    href: "/deep-search",
+    name: 'AI Tools',
+    href: '/ai-mentor',
     icon: Computer,
-    description: "Инструменты для работы с AI",
+    description: 'Инструменты для работы с AI',
   },
   {
-    name: "Cases",
-    href: "/cases/pending",
+    name: 'Cases',
+    href: '/cases/working',
     icon: FileText,
-    description: "Просмотр и управление задачами",
+    description: 'Работа с кейсами телеграма',
   },
   {
-    name: "Syrve Install",
-    href: "/syrve-install",
+    name: 'Syrve Install',
+    href: '/syrve-install',
     icon: Download,
-    description: "Установка и настройка Syrve",
+    description: 'Отслеживания установки клиентов Syrve',
   },
   {
-    name: "Time Tracker",
-    href: "/time-tracker",
+    name: 'Time Tracker',
+    href: '/time-tracker',
     icon: Clock,
-    description: "Отслеживание и управление временем",
+    description: 'Отслеживание и управление временем задач',
   },
 ];
 
@@ -53,9 +53,9 @@ export default function Home() {
           <MotionLink
             key={feature.name}
             href={feature.href}
-            className="group relative block p-8 h-48 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-lg"
+            className="group relative block p-8 h-18 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-sm"
             whileHover={{ scale: 1.05, y: -5 }}
-            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
             <div className="flex flex-col justify-between h-full">
               <div>
