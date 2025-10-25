@@ -12,12 +12,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { Users, LogOut, Download } from 'lucide-react';
 
 export default function UserAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState(null);
+  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -58,18 +59,28 @@ export default function UserAuth() {
   return (
     <div>
       {user ? (
-        <div className='flex items-center space-x-4'>
-          <p className='text-sm text-gray-500'>Привет, {user.email}</p>
-          <Button variant="outline" onClick={handleSignOut}>Выход</Button>
+        <div className='flex items-center space-x-6 text-sm font-medium text-white'>
+          <a href="#" className="flex items-center space-x-1.5 hover:text-gray-200">
+              <Download size={16} />
+              <span>Syrve Install</span>
+          </a>
+          <a href="#" className="flex items-center space-x-1.5 hover:text-gray-200">
+              <Users size={16} />
+              <span>Про мій аккаунт</span>
+          </a>
+          <button onClick={handleSignOut} className="flex items-center space-x-1.5 hover:text-gray-200">
+              <LogOut size={16} />
+              <span>Вийти</span>
+          </button>
         </div>
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Вход / Регистрация</Button>
+            <Button variant="outline">Вхід / Реєстрація</Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Логин</DialogTitle>
+              <DialogTitle>Вхід</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <Input
@@ -82,12 +93,12 @@ export default function UserAuth() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder="Пароль"
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className='flex justify-between'>
-                <Button onClick={handleSignIn}>Вход</Button>
-                <Button onClick={handleSignUp}>Регистрация</Button>
+                <Button onClick={handleSignIn}>Увійти</Button>
+                <Button onClick={handleSignUp}>Зареєструватися</Button>
               </div>
             </div>
           </DialogContent>

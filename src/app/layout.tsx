@@ -1,11 +1,11 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Sidebar } from '@/components/sidebar';
-import UserAuth from '@/components/user-auth';
+import { Navigation } from '@/components/navigation';
 
 export const metadata: Metadata = {
-  title: 'ИИ Антон',
+  title: 'Dao planner',
   description: 'Чат-интерфейс для ИИ Антона.',
 };
 
@@ -21,16 +21,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-gray-900">
-        <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
-                <header className="flex justify-end sticky top-0 bg-gray-900 z-10 p-4">
-                    <UserAuth />
-                </header>
-                <div className="flex-1 flex items-center justify-center">
-                    {children}
-                </div>
+      <body className="font-body antialiased">
+        <div className="flex flex-col h-screen">
+            <Navigation />
+            <main className="flex-1 overflow-y-auto p-6">
+                {children}
             </main>
         </div>
         <Toaster />
