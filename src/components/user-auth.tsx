@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Users, LogOut, Download } from 'lucide-react';
+import { Users, LogOut } from 'lucide-react';
 
 export default function UserAuth() {
   const [email, setEmail] = useState('');
@@ -60,10 +60,6 @@ export default function UserAuth() {
     <div>
       {user ? (
         <div className='flex items-center space-x-6 text-sm font-medium text-white'>
-          <a href="#" className="flex items-center space-x-1.5 hover:text-gray-200">
-              <Download size={16} />
-              <span>Syrve Install</span>
-          </a>
           <a href="#" className="flex items-center space-x-1.5 hover:text-gray-200">
               <Users size={16} />
               <span>Про мій аккаунт</span>
