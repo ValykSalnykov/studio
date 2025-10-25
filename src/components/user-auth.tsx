@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +12,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Users, LogOut } from 'lucide-react';
+import { AccountModal } from './account-modal';
 
 export default function UserAuth() {
   const [email, setEmail] = useState('');
@@ -20,6 +20,7 @@ export default function UserAuth() {
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -56,19 +57,27 @@ export default function UserAuth() {
     setError(null);
   };
 
+  const handleAccountClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsAccountModalOpen(true);
+  };
+
   return (
     <div>
       {user ? (
-        <div className='flex items-center space-x-6 text-sm font-medium text-white'>
-          <a href="#" className="flex items-center space-x-1.5 hover:text-gray-200">
-              <Users size={16} />
-              <span>Про мій аккаунт</span>
-          </a>
-          <button onClick={handleSignOut} className="flex items-center space-x-1.5 hover:text-gray-200">
-              <LogOut size={16} />
-              <span>Вийти</span>
-          </button>
-        </div>
+        <>
+          <div className='flex items-center space-x-6 text-sm font-medium text-white'>
+            <a href="#" onClick={handleAccountClick} className="flex items-center space-x-1.5 hover:text-gray-200">
+                <Users size={16} />
+                <span>Про мій аккаунт</span>
+            </a>
+            <button onClick={handleSignOut} className="flex items-center space-x-1.5 hover:text-gray-200">
+                <LogOut size={16} />
+                <span>Вийти</span>
+            </button>
+          </div>
+          <AccountModal open={isAccountModalOpen} onOpenChange={setIsAccountModalOpen} user={user} />
+        </>
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
