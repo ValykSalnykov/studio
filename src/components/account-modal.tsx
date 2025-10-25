@@ -9,8 +9,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
 
 export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOpenChange: (open: boolean) => void, user: any }) {
+  const [role, setRole] = useState<string | null>(null);
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -21,9 +31,21 @@ export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOp
           </AlertDialogDescription>
         </AlertDialogHeader>
         {user && (
-          <div>
+          <div className="space-y-4">
             <p>Email: {user.email}</p>
-            {/* Add other user data here if available */}
+            <div>
+              <Label htmlFor="role-select">Роль</Label>
+              <Select onValueChange={setRole} defaultValue={role ?? undefined}>
+                <SelectTrigger id="role-select">
+                  <SelectValue placeholder="Виберіть роль" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mentor">Ментор</SelectItem>
+                  <SelectItem value="team-lead">Тим-лид</SelectItem>
+                  <SelectItem value="on-duty">Дежурный</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
         <AlertDialogFooter>

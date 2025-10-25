@@ -5,20 +5,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import UserAuth from '@/components/user-auth';
-import { Download, Bot } from 'lucide-react';
+import { Download, Bot, Briefcase } from 'lucide-react';
 
 // Defines the entire navigation structure
 const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[] }> = {
-  'ИИ': {
+  'AI Tools': {
     icon: Bot,
     subLinks: [
       { href: '/', label: 'ИИ Ментор' },
       { href: '/templator', label: 'Шаблонизатор' },
       { href: '/deep-search', label: 'Deep Search' },
-      { href: '/cases/working', label: 'Робочі кейси' },
-      { href: '/cases/complex', label: 'Складні кейси'},
-      { href: '/cases/pending', label: 'Отложенные'},
     ]
+  },
+  'Cases': {
+    icon: Briefcase,
+    subLinks: [
+        { href: '/cases/working', label: 'Робочі кейси' },
+        { href: '/cases/complex', label: 'Складні кейси'},
+        { href: '/cases/pending', label: 'Отложенные'},
+      ]
   },
   // 'Syrve Install' is a main link but has no sub-menu
   'Syrve Install': {
@@ -38,10 +43,10 @@ export function Navigation() {
         return mainLabel;
       }
     }
-    return 'ИИ'; // Default to 'ИИ' if no match is found
+    return 'AI Tools'; // Default to 'Инструменты ИИ' if no match is found
   };
   
-  const [activeMainLink, setActiveMainLink] = useState('ИИ');
+  const [activeMainLink, setActiveMainLink] = useState('AI Tools');
 
   // Effect to set the active main link on path change
   useEffect(() => {
