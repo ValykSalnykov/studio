@@ -17,6 +17,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+  const isAiMentorPage = pathname === '/ai-mentor';
 
   return (
     <html lang="ru">
@@ -31,8 +32,8 @@ export default function RootLayout({
         <div className="flex flex-col h-screen">
           <Navigation />
           <main className={cn("flex-1 overflow-y-auto", {
-            "p-0": isHomePage, // No padding on the homepage
-            "p-6": !isHomePage
+            "p-0": isHomePage || isAiMentorPage,
+            "p-6": !isHomePage && !isAiMentorPage
           })}>
             {children}
           </main>

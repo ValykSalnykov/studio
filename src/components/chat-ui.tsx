@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
@@ -237,7 +238,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto relative">
+    <div className="w-[90vw] mx-auto relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -298,10 +299,11 @@ export default function ChatUI() {
                             )}
                             <div
                             className={cn(
-                                'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
+                                'rounded-lg px-4 py-2 shadow-md',
                                 message.role === 'user'
-                                ? 'bg-primary text-primary-foreground rounded-br-none'
-                                : 'bg-muted text-card-foreground rounded-bl-none'
+                                ? 'bg-primary text-primary-foreground rounded-br-none max-w-md lg:max-w-2xl'
+                                : 'bg-muted text-card-foreground rounded-bl-none',
+                                { 'w-full': message.role === 'bot' && !message.typing }
                             )}
                             >
                                 {message.role === 'bot' ? (
