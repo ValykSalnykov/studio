@@ -24,7 +24,6 @@ import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FeedbackModal } from './feedback-modal';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Case {
     id: string;
@@ -82,7 +81,7 @@ function LogMessage({ logs }: { logs: string[] }) {
   );
 }
 
-function BotMessage({ content, logs, typing }: { content: any, logs?: string[], typing?: boolean }) {
+function BotMessage({ content, logs, typing, onOpenFeedback }: { content: any, logs?: string[], typing?: boolean, onOpenFeedback: () => void }) {
     if (typing) {
         return <TypingIndicator />;
     }
@@ -90,16 +89,21 @@ function BotMessage({ content, logs, typing }: { content: any, logs?: string[], 
     let displayContent;
     if (typeof content === 'string') {
         displayContent = content;
-    } else if (content && typeof content === 'object' && content.output) {
-        displayContent = content.output;
+    } else if (content && typeof content === 'object') {
+        displayContent = content.text || content.output;
     } else {
         displayContent = JSON.stringify(content);
     }
 
     return (
-        <div>
-            <div className="text-sm break-words text-white">{displayContent}</div>
+        <div className="group relative">
+            <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
             {logs && logs.length > 0 && <LogMessage logs={logs} />}
+             <div className="absolute bottom-0 right-0 mb-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onOpenFeedback}>
+                    <MessageSquareText className="h-4 w-4" />
+                </Button>
+            </div>
         </div>
     );
 }
@@ -188,11 +192,9 @@ export default function ChatUI() {
       
       if (result?.response) {
         try {
-            // The response is an array with a single object, so we parse it and take the first element.
             const parsedResponse = JSON.parse(result.response);
-            botContent = parsedResponse[0].output;
+            botContent = parsedResponse[0];
         } catch (e) {
-            // If parsing fails, we'll just use the raw response.
             botContent = result.response;
         }
         logs = result.logs;
@@ -223,19 +225,13 @@ export default function ChatUI() {
   }
 
   const openFeedbackModal = (message: any) => {
-    let summary = '';
     let initialCase: Case | undefined;
 
-    if (typeof message === 'string') {
-        summary = message;
-    } else if (message && typeof message === 'object') {
-        summary = message.output || '';
-        if (message.case && message.source) {
-            initialCase = { id: message.case, source: message.source };
-        }
+    if (message && typeof message === 'object' && message.case && message.source) {
+        initialCase = { id: message.case, source: message.source };
     }
     
-    setSelectedMessageForFeedback(summary);
+    setSelectedMessageForFeedback(undefined);
     setInitialCase(initialCase);
     setFeedbackModalOpen(true);
   }
@@ -289,7 +285,7 @@ export default function ChatUI() {
                         <div
                             key={message.id}
                             className={cn(
-                            'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 group',
+                            'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
                             message.role === 'user' ? 'justify-end' : 'justify-start'
                             )}
                         >
@@ -300,33 +296,24 @@ export default function ChatUI() {
                                 </AvatarFallback>
                             </Avatar>
                             )}
-                            <div className={cn('flex items-center gap-2', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-                              <div
-                              className={cn(
-                                  'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
-                                  message.role === 'user'
-                                  ? 'bg-primary text-primary-foreground rounded-br-none'
-                                  : 'bg-muted text-card-foreground rounded-bl-none'
-                              )}
-                              >
-                                  {message.role === 'bot' ? (
-                                      <BotMessage content={message.content} logs={message.logs} typing={message.typing} />
-                                  ) : (
-                                      <div className="text-sm break-words">{message.content}</div>
-                                  )}
-                              </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side={message.role === 'user' ? 'left' : 'right'}>
-                                    <DropdownMenuItem onClick={() => openFeedbackModal(message.content)}>
-                                        Создать отзыв из сообщения
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                            <div
+                            className={cn(
+                                'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
+                                message.role === 'user'
+                                ? 'bg-primary text-primary-foreground rounded-br-none'
+                                : 'bg-muted text-card-foreground rounded-bl-none'
+                            )}
+                            >
+                                {message.role === 'bot' ? (
+                                    <BotMessage 
+                                        content={message.content} 
+                                        logs={message.logs} 
+                                        typing={message.typing} 
+                                        onOpenFeedback={() => openFeedbackModal(message.content)}
+                                    />
+                                ) : (
+                                    <div className="text-sm break-words">{message.content}</div>
+                                )}
                             </div>
                             {message.role === 'user' && (
                             <Avatar className="h-8 w-8 border">
