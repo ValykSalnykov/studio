@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, FilePlus2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, FilePlus2, MoreHorizontal } from 'lucide-react';
 import { sendMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,11 +23,24 @@ import {
 import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { FeedbackModal } from './feedback-modal';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+interface Case {
+    id: string;
+    source: string;
+}
+
+interface BotResponse {
+    case: string;
+    output: string;
+    source: string;
+}
 
 type Message = {
   id: number;
   role: 'user' | 'bot';
-  content: React.ReactNode;
+  content: any;
   logs?: string[];
   typing?: boolean;
 };
@@ -69,13 +82,23 @@ function LogMessage({ logs }: { logs: string[] }) {
   );
 }
 
-function BotMessage({ content, logs, typing }: { content: React.ReactNode, logs?: string[], typing?: boolean }) {
+function BotMessage({ content, logs, typing }: { content: any, logs?: string[], typing?: boolean }) {
     if (typing) {
         return <TypingIndicator />;
     }
+
+    let displayContent;
+    if (typeof content === 'string') {
+        displayContent = content;
+    } else if (content && typeof content === 'object' && content.output) {
+        displayContent = content.output;
+    } else {
+        displayContent = JSON.stringify(content);
+    }
+
     return (
         <div>
-            <div className="text-sm break-words">{content}</div>
+            <div className="text-sm break-words text-white">{displayContent}</div>
             {logs && logs.length > 0 && <LogMessage logs={logs} />}
         </div>
     );
@@ -84,11 +107,13 @@ function BotMessage({ content, logs, typing }: { content: React.ReactNode, logs?
 export default function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [caseNumber, setCaseNumber] = useState('');
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [isFeedbackMode, setIsFeedbackMode] = useState(false);
+  const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedMessageForFeedback, setSelectedMessageForFeedback] = useState<string | undefined>(undefined);
+  const [initialCase, setInitialCase] = useState<Case | undefined>();
+
   const [siteEnabled, setSiteEnabled] = useState(false);
   const [bzEnabled, setBzEnabled] = useState(false);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
@@ -97,26 +122,12 @@ export default function ChatUI() {
     setMessages([]);
   };
 
-  const toggleFeedbackMode = () => {
-    setIsFeedbackMode(prev => !prev);
-    setInput('');
-    setCaseNumber('');
-  }
-
-  const handleCaseNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    const regex = /^[0-9,]*$/;
-    if (regex.test(value)) {
-        setCaseNumber(value);
-    }
-  };
-
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
       setCurrentUser(user);
       if (!user) {
         setMessages([]);
-        setIsFeedbackMode(false);
+        setFeedbackModalOpen(false);
       }
     });
     return () => unsubscribe();
@@ -131,15 +142,28 @@ export default function ChatUI() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSend = (feedback?: { cases: Case[]; summary: string }) => {
     if (!currentUser) return;
     const trimmedInput = input.trim();
-    if ((!trimmedInput && !caseNumber) || isPending) return;
+    if (!trimmedInput && !feedback) return;
 
-    const userMessageContent = isFeedbackMode
-      ? `Отзыв по кейсу №${caseNumber || 'N/A'}: ${trimmedInput}`
-      : trimmedInput;
+    let userMessageContent: string;
+    const formData = new FormData();
+    formData.append('sessionId', currentUser.uid);
+
+    if (feedback) {
+        userMessageContent = `Отзыв: ${feedback.summary}`;
+        formData.append('review', 'true');
+        formData.append('review_message', feedback.summary);
+        formData.append('cases', JSON.stringify(feedback.cases));
+    } else {
+        userMessageContent = trimmedInput;
+        formData.append('message', trimmedInput);
+        formData.append('site', String(siteEnabled));
+        formData.append('bz', String(bzEnabled));
+        formData.append('telegram', String(telegramEnabled));
+        formData.append('review', 'false');
+    }
 
     const userMessage: Message = {
       id: Date.now(),
@@ -156,38 +180,22 @@ export default function ChatUI() {
 
     setMessages(prev => [...prev, userMessage, typingMessage]);
 
-    const formData = new FormData();
-    formData.append('message', trimmedInput);
-    formData.append('sessionId', currentUser.uid);
-
-    // Sources
-    formData.append('site', String(siteEnabled));
-    formData.append('bz', String(bzEnabled));
-    formData.append('telegram', String(telegramEnabled));
-
-    // Review mode
-    formData.append('review', String(isFeedbackMode));
-    if (isFeedbackMode) {
-        formData.append('review_message', trimmedInput);
-        if (caseNumber) {
-            caseNumber.split(',').forEach(cn => {
-                const trimmedCn = cn.trim();
-                if (trimmedCn) {
-                    formData.append('case_numbers', trimmedCn);
-                }
-            });
-        }
-    }
-
     startTransition(async () => {
       const result = await sendMessage(null, formData);
 
-      let botContent: React.ReactNode;
+      let botContent: any;
       let logs: string[] | undefined;
       
       if (result?.response) {
-        botContent = result.response;
-        logs = result.logs
+        try {
+            // The response is an array with a single object, so we parse it and take the first element.
+            const parsedResponse = JSON.parse(result.response);
+            botContent = parsedResponse[0].output;
+        } catch (e) {
+            // If parsing fails, we'll just use the raw response.
+            botContent = result.response;
+        }
+        logs = result.logs;
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
         botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
@@ -207,14 +215,40 @@ export default function ChatUI() {
     });
 
     setInput('');
-    setCaseNumber('');
-    if (isFeedbackMode) {
-        toggleFeedbackMode();
-    }
   };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      handleSend();
+  }
+
+  const openFeedbackModal = (message: any) => {
+    let summary = '';
+    let initialCase: Case | undefined;
+
+    if (typeof message === 'string') {
+        summary = message;
+    } else if (message && typeof message === 'object') {
+        summary = message.output || '';
+        if (message.case && message.source) {
+            initialCase = { id: message.case, source: message.source };
+        }
+    }
+    
+    setSelectedMessageForFeedback(summary);
+    setInitialCase(initialCase);
+    setFeedbackModalOpen(true);
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto relative">
+        <FeedbackModal 
+            isOpen={isFeedbackModalOpen}
+            onClose={() => setFeedbackModalOpen(false)}
+            message={selectedMessageForFeedback}
+            initialCase={initialCase}
+            onSubmit={(feedback) => handleSend(feedback)}
+        />
         <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
         <CardHeader className="border-b p-4">
           <div className="flex w-full items-start justify-between gap-4">
@@ -255,7 +289,7 @@ export default function ChatUI() {
                         <div
                             key={message.id}
                             className={cn(
-                            'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
+                            'flex items-start gap-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 group',
                             message.role === 'user' ? 'justify-end' : 'justify-start'
                             )}
                         >
@@ -266,19 +300,33 @@ export default function ChatUI() {
                                 </AvatarFallback>
                             </Avatar>
                             )}
-                            <div
-                            className={cn(
-                                'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
-                                message.role === 'user'
-                                ? 'bg-primary text-primary-foreground rounded-br-none'
-                                : 'bg-muted text-card-foreground rounded-bl-none'
-                            )}
-                            >
-                                {message.role === 'bot' ? (
-                                    <BotMessage content={message.content} logs={message.logs} typing={message.typing} />
-                                ) : (
-                                    <div className="text-sm break-words">{message.content}</div>
-                                )}
+                            <div className={cn('flex items-center gap-2', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+                              <div
+                              className={cn(
+                                  'max-w-md lg:max-w-2xl rounded-lg px-4 py-2 shadow-md',
+                                  message.role === 'user'
+                                  ? 'bg-primary text-primary-foreground rounded-br-none'
+                                  : 'bg-muted text-card-foreground rounded-bl-none'
+                              )}
+                              >
+                                  {message.role === 'bot' ? (
+                                      <BotMessage content={message.content} logs={message.logs} typing={message.typing} />
+                                  ) : (
+                                      <div className="text-sm break-words">{message.content}</div>
+                                  )}
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side={message.role === 'user' ? 'left' : 'right'}>
+                                    <DropdownMenuItem onClick={() => openFeedbackModal(message.content)}>
+                                        Создать отзыв из сообщения
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                             {message.role === 'user' && (
                             <Avatar className="h-8 w-8 border">
@@ -297,91 +345,66 @@ export default function ChatUI() {
             </CardContent>
             <CardFooter className="border-t pt-4">
                 <div className="w-full">
-                    {isFeedbackMode && (
-                        <div className="space-y-2 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-                            <p className="text-xs text-muted-foreground px-2">
-                                Предоставь описание выполненных действий по кейсу и полученный результат от выполненных действий.
-                            </p>
-                            <Input
-                                value={caseNumber}
-                                onChange={handleCaseNumberChange}
-                                placeholder="Введите номер кейса"
-                                autoComplete="off"
-                                disabled={isPending || !currentUser}
-                                className="text-base"
-                            />
-                        </div>
-                    )}
-                    {!isFeedbackMode && (
-                        <div className="flex items-center gap-3 mb-3">
-                             <span className="text-sm font-medium text-muted-foreground">Источник:</span>
-                            <Button
-                                onClick={() => setSiteEnabled(!siteEnabled)}
-                                className={cn(
-                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
-                                    siteEnabled
-                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
-                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
-                                )}
-                            >
-                                Сайт
-                            </Button>
-                            <Button
-                                onClick={() => setBzEnabled(!bzEnabled)}
-                                className={cn(
-                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
-                                    bzEnabled
-                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
-                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
-                                )}
-                            >
-                                БЗ
-                            </Button>
-                            <Button
-                                onClick={() => setTelegramEnabled(!telegramEnabled)}
-                                className={cn(
-                                    "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
-                                    telegramEnabled
-                                        ? "scale-105 bg-green-500 text-white hover:bg-green-600"
-                                        : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
-                                )}
-                            >
-                                Телеграм
-                            </Button>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3 mb-3">
+                         <span className="text-sm font-medium text-muted-foreground">Источник:</span>
+                        <Button
+                            onClick={() => setSiteEnabled(!siteEnabled)}
+                            className={cn(
+                                "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                siteEnabled
+                                    ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                    : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                            )}
+                        >
+                            Сайт
+                        </Button>
+                        <Button
+                            onClick={() => setBzEnabled(!bzEnabled)}
+                            className={cn(
+                                "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                bzEnabled
+                                    ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                    : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                            )}
+                        >
+                            БЗ
+                        </Button>
+                        <Button
+                            onClick={() => setTelegramEnabled(!telegramEnabled)}
+                            className={cn(
+                                "h-7 rounded-full px-3 text-xs transition-all duration-200 ease-in-out transform",
+                                telegramEnabled
+                                    ? "scale-105 bg-green-500 text-white hover:bg-green-600"
+                                    : "scale-100 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                            )}
+                        >
+                            Телеграм
+                        </Button>
+                    </div>
                     <form
                     onSubmit={handleSubmit}
                     className="w-full flex items-center gap-3"
                     >
-                        {isFeedbackMode ? (
-                            <Button variant="ghost" size="icon" onClick={toggleFeedbackMode} disabled={!currentUser} className="flex-shrink-0 animate-in fade-in-0 zoom-in-95 duration-300">
-                                <MessageSquareText className="h-5 w-5" />
-                            </Button>
-                        ) : (
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="ghost" size="icon" disabled={!currentUser} className="flex-shrink-0 animate-in fade-in-0 zoom-in-95 duration-300">
-                                        <Plus className="h-5 w-5" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent side="top" align="start" className="w-auto p-1">
-                                    <Button variant="ghost" size="sm" className="w-full justify-start" onClick={toggleFeedbackMode}>
-                                        <MessageSquareText className="h-4 w-4 mr-2" />
-                                        Отзыв
-                                    </Button>
-                                </PopoverContent>
-                            </Popover>
-                        )}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" disabled={!currentUser} className="flex-shrink-0 animate-in fade-in-0 zoom-in-95 duration-300">
+                                    <Plus className="h-5 w-5" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent side="top" align="start" className="w-auto p-1">
+                                <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => openFeedbackModal(undefined)}>
+                                    <MessageSquareText className="h-4 w-4 mr-2" />
+                                    Создать отзыв
+                                </Button>
+                            </PopoverContent>
+                        </Popover>
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={
                             !currentUser 
                                 ? "Пожалуйста, сначала войдите" 
-                                : isFeedbackMode 
-                                    ? "Напишите ваш отзыв"
-                                    : "Спросите что-нибудь..."
+                                : "Спросите что-нибудь..."
                         }
                         autoComplete="off"
                         disabled={isPending || !currentUser}

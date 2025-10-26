@@ -10,6 +10,11 @@ const messageSchema = z.object({
   sessionId: z.string().min(1, 'Требуется идентификатор сессии'),
 });
 
+interface Case {
+    id: string;
+    source: string;
+}
+
 type ActionState = {
   logs?: string[];
   response?: string;
@@ -31,7 +36,7 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
     log.push(`[2/6] Используется webhook URL: ${url}`);
   
     const validatedFields = messageSchema.safeParse({
-      message: formData.get('message'),
+      message: formData.get('review_message') || formData.get('message'),
       sessionId: formData.get('sessionId'),
     });
   
@@ -50,8 +55,6 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
   
-      const case_numbers = formData.getAll('case_numbers').filter(cn => typeof cn === 'string' && cn.length > 0);
-
       const requestBody: {
           message: string,
           sessionId: string,
@@ -60,7 +63,7 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
           site: boolean,
           bz: boolean,
           telegram: boolean,
-          case_numbers?: string[]
+          cases?: Case[]
       } = {
           message: validatedFields.data.message,
           sessionId: validatedFields.data.sessionId,
@@ -72,10 +75,14 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
 
       if (requestBody.review) {
           requestBody.review_message = formData.get('review_message') as string;
-      }
-
-      if (case_numbers.length > 0) {
-        requestBody.case_numbers = case_numbers as string[];
+          const casesRaw = formData.get('cases');
+          if (typeof casesRaw === 'string') {
+              try {
+                  requestBody.cases = JSON.parse(casesRaw);
+              } catch (e) {
+                  log.push(`[WARN] Не удалось разобрать JSON для кейсов: ${casesRaw}`);
+              }
+          }
       }
   
       const response = await fetch(url, {
