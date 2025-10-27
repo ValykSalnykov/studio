@@ -62,7 +62,7 @@ export function Navigation() {
 
   return (
     <header className="bg-[#1A237E] text-white shadow-md">
-      <div className="container mx-auto flex items-center justify-between p-4">
+      <div className="container mx-auto flex items-center justify-between p-2">
         <div className="w-1/3">
            <Link href="/" className="text-xl font-bold">DAO apps</Link>
         </div>
@@ -116,7 +116,7 @@ export function Navigation() {
 
       {!isHomePage && currentSubLinks.length > 0 && (
         <div className="bg-[#D28F00]">
-          <nav className="container mx-auto flex items-center justify-center space-x-6 p-2 text-sm font-medium">
+          <nav className="container mx-auto flex items-center justify-center space-x-6 p-1 text-sm font-medium">
             {currentSubLinks.map((link) => (
               <Link
                 key={link.href}

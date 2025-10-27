@@ -53,7 +53,7 @@ async function handleWebhookRequest(url: string | undefined, formData: FormData)
     try {
       log.push('[4/6] Попытка отправки POST-запроса...');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
   
       const requestBody: {
           message: string,

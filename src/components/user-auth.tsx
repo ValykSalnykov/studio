@@ -81,11 +81,13 @@ export default function UserAuth() {
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Вхід / Реєстрація</Button>
+            <Button variant="outline" className="border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-gray-900">
+                Вхід / Реєстрація
+            </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700">
             <DialogHeader>
-              <DialogTitle>Вхід</DialogTitle>
+              <DialogTitle className="text-white">Вхід</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <Input
@@ -93,17 +95,19 @@ export default function UserAuth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
+                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
               />
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Пароль"
+                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className='flex justify-between'>
-                <Button onClick={handleSignIn}>Увійти</Button>
-                <Button onClick={handleSignUp}>Зареєструватися</Button>
+                <Button onClick={handleSignIn} className="bg-amber-500 hover:bg-amber-600 text-black">Увійти</Button>
+                <Button onClick={handleSignUp} variant="secondary" className="bg-gray-600 hover:bg-gray-700 text-white">Зареєструватися</Button>
               </div>
             </div>
           </DialogContent>
