@@ -18,6 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 interface TelegramCheckItem {
   id: number;
@@ -57,16 +59,7 @@ export default function RabochiePage() {
   const [editedTheme, setEditedTheme] = useState('');
   const [editedQuestion, setEditedQuestion] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
-
-  const [selectedSources, setSelectedSources] = useState({
-    site: false,
-    youtube: false,
-    telegram: false,
-    instagram: false,
-  });
-  const [isReviewMode, setIsReviewMode] = useState(false);
-  const [reviewMessage, setReviewMessage] = useState('');
-  const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function getTelegramCheckData() {
@@ -110,43 +103,44 @@ export default function RabochiePage() {
 
     if (error) {
       console.error('Error updating data:', error);
-      // Тут можно показать уведомление об ошибке
+      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить изменения." });
     } else if (updatedData) {
       setData(prevData => prevData.map(item => item.id === selectedItem.id ? { ...item, content: newContent } : item));
       setSelectedItem(prevItem => prevItem ? { ...prevItem, content: newContent } : null);
       setIsEditMode(false);
+      toast({ title: "Успех", description: "Кейс успешно обновлен." });
     }
   };
   
-  const handleStatusChange = async (status: 'ok' | 'not_ok' | 'pending') => {
+  const handleStatusChange = (status: 'ok' | 'not_ok' | 'pending') => {
     if (!selectedItem) return;
+    setIsModalOpen(false);
 
-    const { id, content } = selectedItem;
-    let targetTable = '';
-    if (status === 'not_ok') targetTable = 'complexcheck';
-    if (status === 'pending') targetTable = 'pendingcheck';
-
-    // Для "ОК" просто удаляем, для остальных - перемещаем
-    if (status !== 'ok') {
-        const { error: insertError } = await supabase.from(targetTable).insert([{ content }]);
-        if (insertError) {
-            console.error(`Error moving item to ${targetTable}:`, insertError);
-            return;
-        }
-    }
-
-    const { error: deleteError } = await supabase.from('telegramcheck').delete().eq('id', id);
-    if (deleteError) {
-        console.error('Error deleting item:', deleteError);
-        // Потенциально, нужно обработать случай, когда запись уже в новой таблице, но не удалилась из старой
-    } else {
-        setData(prevData => prevData.filter(item => item.id !== id));
-        setIsModalOpen(false);
+    switch (status) {
+      case 'ok':
+        toast({
+          title: "Действие: ОК",
+          description: "Кейс будет удален из таблицы `telegramcheck`.",
+        });
+        break;
+      case 'not_ok':
+        toast({
+          title: "Действие: не ОК",
+          description: "Кейс будет перемещен в таблицу `complexcheck`.",
+        });
+        break;
+      case 'pending':
+        toast({
+          title: "Действие: Отложить",
+          description: "Кейс будет перемещен в таблицу `pendingcheck`.",
+        });
+        break;
     }
   };
 
   return (
     <div className="p-4 md:p-8">
+      <Toaster />
       <h1 className="text-3xl font-bold mb-6 text-black-400 text-center">Рабочие кейсы</h1>
       {data.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
