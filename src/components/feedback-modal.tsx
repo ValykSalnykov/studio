@@ -1,3 +1,4 @@
+
 import {
     Dialog,
     DialogContent,
@@ -11,20 +12,20 @@ import {
   import { Textarea } from "@/components/ui/textarea";
   import { useState, useEffect } from "react";
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-  
+
   interface Case {
     id: string;
     source: string;
   }
-  
+
   interface FeedbackModalProps {
     isOpen: boolean;
     onClose: () => void;
     message?: string;
     initialCase?: Case;
-    onSubmit: (feedback: { cases: Case[]; summary: string }) => void;
+    onSubmit: (feedback: { case: Case; summary: string }) => void;
   }
-  
+
   const sourceOptions = [
     "Официальная документация Syrve",
     "Наша база знаний",
@@ -33,74 +34,62 @@ import {
   ];
 
   export function FeedbackModal({ isOpen, onClose, message, initialCase, onSubmit }: FeedbackModalProps) {
-    const [cases, setCases] = useState<Case[]>([]);
+    const [caseItem, setCaseItem] = useState<Case>({ id: "", source: "" });
     const [summary, setSummary] = useState(message || "");
-  
+
     useEffect(() => {
         if (isOpen) {
-            const initialCases = [];
             if (initialCase) {
-                initialCases.push(initialCase);
+                setCaseItem(initialCase);
+            } else {
+                setCaseItem({ id: "", source: "" });
             }
 
             if (message) {
                 setSummary("");
                 const caseRegex = /(?:кейс|case)\s*(\d+)/gi;
-                let match;
-                while ((match = caseRegex.exec(message)) !== null) {
+                const match = caseRegex.exec(message);
+                if (match) {
                     const caseId = match[1];
-                    if (!initialCases.some(c => c.id === caseId)) {
-                        initialCases.push({ id: caseId, source: "" });
+                    if (caseItem.id !== caseId) {
+                       setCaseItem(prev => ({ ...prev, id: caseId }));
                     }
                 }
             } else {
                 setSummary('');
             }
-            setCases(initialCases);
         }
     }, [isOpen, message, initialCase]);
-  
-    const handleAddCase = () => {
-      setCases([...cases, { id: "", source: "" }]);
+
+    const handleCaseChange = (field: keyof Case, value: string) => {
+      setCaseItem(prev => ({ ...prev, [field]: value }));
     };
-  
-    const handleCaseChange = (index: number, field: keyof Case, value: string) => {
-      const newCases = [...cases];
-      newCases[index][field] = value;
-      setCases(newCases);
-    };
-  
-    const handleRemoveCase = (index: number) => {
-      const newCases = cases.filter((_, i) => i !== index);
-      setCases(newCases);
-    };
-  
+
     const handleSubmit = () => {
-      onSubmit({ cases, summary });
+      onSubmit({ case: caseItem, summary });
       onClose();
     };
-  
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="bg-gray-900 text-gray-50 border-gray-700">
           <DialogHeader>
             <DialogTitle>Создать отзыв</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Добавьте номера кейсов, их источники и итоговый вывод по проделанной работе.
+              Добавьте номер кейса, его источник и итоговый вывод по проделанной работе.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Кейсы</label>
-              {cases.map((caseItem, index) => (
-                <div key={index} className="flex items-center space-x-2 mt-2">
+              <label className="text-sm font-medium">Кейс</label>
+                <div className="flex items-center space-x-2 mt-2">
                   <Input
                     placeholder="Номер кейса"
                     value={caseItem.id}
-                    onChange={(e) => handleCaseChange(index, "id", e.target.value)}
+                    onChange={(e) => handleCaseChange("id", e.target.value)}
                     className="bg-gray-800 border-gray-600 text-gray-50"
                   />
-                  <Select onValueChange={(value) => handleCaseChange(index, "source", value)} defaultValue={caseItem.source}>
+                  <Select onValueChange={(value) => handleCaseChange("source", value)} defaultValue={caseItem.source}>
                     <SelectTrigger className="bg-gray-800 border-gray-600 text-gray-50">
                         <SelectValue placeholder="Источник" />
                     </SelectTrigger>
@@ -110,14 +99,7 @@ import {
                         ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="ghost" size="icon" onClick={() => handleRemoveCase(index)} className="text-gray-400 hover:bg-gray-700">
-                    &times;
-                  </Button>
                 </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={handleAddCase} className="mt-2 bg-gray-800 border-gray-600 text-gray-50 hover:bg-gray-700">
-                Добавить кейс
-              </Button>
             </div>
             <div>
               <label className="text-sm font-medium">Итоговый вывод</label>
