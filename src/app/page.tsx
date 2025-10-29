@@ -45,7 +45,7 @@ export default function Home() {
           DAO Apps
         </h1>
         <p className="mt-4 text-xl text-gray-400">
-          Ваш центр управления задачами и инструментами
+          Ваш центр управления приложениями и инструментами
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -53,7 +53,7 @@ export default function Home() {
           <MotionLink
             key={feature.name}
             href={feature.href}
-            className="group relative block p-8 h-48 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-lg border border-gray-700 transition-all duration-300 hover:border-amber-400 hover:shadow-amber-400/20"
+            className="group relative block p-8 h-48 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-lg border border-gray-700 transition-all duration-100 hover:border-amber-400 hover:shadow-amber-400/20"
             whileHover={{ scale: 1.05, y: -5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
@@ -64,7 +64,7 @@ export default function Home() {
               </div>
               <p className="mt-2 text-sm text-gray-400">{feature.description}</p>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-100" />
           </MotionLink>
         ))}
       </div>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, FilePlus2, MoreHorizontal } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, FilePlus2, ThumbsUp, ThumbsDown, Meh } from 'lucide-react';
 import { sendMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FeedbackModal } from './feedback-modal';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
 
 interface Case {
     id: string;
@@ -82,6 +84,94 @@ function LogMessage({ logs }: { logs: string[] }) {
   );
 }
 
+function FeedbackIcons({ onOpenFeedback }: { onOpenFeedback: () => void }) {
+    const [feedback, setFeedback] = useState<string | null>(null);
+
+    const handleFeedbackClick = (type: string) => {
+        if (type === 'detailed') {
+            onOpenFeedback();
+            setFeedback('detailed');
+        } else {
+            setFeedback(type);
+        }
+    };
+
+    const isButtonDisabled = (type: string) => {
+        return feedback !== null && feedback !== type;
+    };
+
+    return (
+        <TooltipProvider>
+            <div className="flex items-center gap-2 mt-2 border-t pt-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", feedback === 'like' && "text-green-500")}
+                            onClick={() => handleFeedbackClick('like')}
+                            disabled={isButtonDisabled('like')}
+                        >
+                            <ThumbsUp className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Отлично</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", feedback === 'ok' && "text-yellow-500")}
+                            onClick={() => handleFeedbackClick('ok')}
+                            disabled={isButtonDisabled('ok')}
+                        >
+                            <Meh className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Норм</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", feedback === 'dislike' && "text-red-500")}
+                            onClick={() => handleFeedbackClick('dislike')}
+                            disabled={isButtonDisabled('dislike')}
+                        >
+                            <ThumbsDown className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Плохо</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", feedback === 'detailed' && "text-blue-500")}
+                            onClick={() => handleFeedbackClick('detailed')}
+                            disabled={isButtonDisabled('detailed')}
+                        >
+                            <MessageSquareText className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Детальный отзыв</p>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
+    );
+}
+
 function BotMessage({ content, logs, typing, onOpenFeedback }: { content: any, logs?: string[], typing?: boolean, onOpenFeedback: () => void }) {
     if (typing) {
         return <TypingIndicator />;
@@ -97,14 +187,10 @@ function BotMessage({ content, logs, typing, onOpenFeedback }: { content: any, l
     }
 
     return (
-        <div className="group relative">
+        <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
             {logs && logs.length > 0 && <LogMessage logs={logs} />}
-             <div className="absolute bottom-0 right-0 mb-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onOpenFeedback}>
-                    <MessageSquareText className="h-4 w-4" />
-                </Button>
-            </div>
+            <FeedbackIcons onOpenFeedback={onOpenFeedback} />
         </div>
     );
 }

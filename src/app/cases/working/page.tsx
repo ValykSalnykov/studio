@@ -20,6 +20,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TelegramCheckItem {
   id: number;
@@ -60,6 +74,21 @@ export default function RabochiePage() {
   const [editedQuestion, setEditedQuestion] = useState('');
   const [editedAnswer, setEditedAnswer] = useState('');
   const { toast } = useToast();
+
+  const [caseAnalysis, setCaseAnalysis] = useState({
+    case_source: 'Telegram',
+    case_number: 'TG-12345',
+    user_conversation_summary: 'Пользователь не может найти кнопку для скачивания отчета.',
+    user_conclusions: 'Пользователь считает, что интерфейс неудобный и кнопка должна быть более заметной.',
+  });
+
+  const [expertAnswer, setExpertAnswer] = useState({
+      text_description: 'Для решения проблемы пользователя необходимо объяснить ему, что кнопка находится в правом верхнем углу экрана под иконкой "Экспорт".',
+      solution_steps: '1. Откройте нужный отчет.\n2. Посмотрите в правый верхний угол.\n3. Нажмите на иконку "Экспорт".',
+      code_type: 'JSON',
+      code: '{\n  "action": "downloadReport",\n  "button_location": "top-right"\n}',
+      important_notes: 'Убедитесь, что у пользователя есть права на экспорт отчетов.\nЭтот функционал доступен только в Pro-версии.',
+  });
 
   useEffect(() => {
     async function getTelegramCheckData() {
@@ -164,7 +193,7 @@ export default function RabochiePage() {
         <Dialog open={isModalOpen} onOpenChange={(isOpen) => {
             if (!isOpen) setIsModalOpen(false);
         }}>
-          <DialogContent className="bg-gray-900 border-gray-700 text-white sm:max-w-[600px]">
+          <DialogContent className="bg-gray-900 border-gray-700 text-white sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl mb-4">Детали кейса</DialogTitle>
               <DialogDescription asChild>
@@ -205,6 +234,78 @@ export default function RabochiePage() {
                 )}
               </DialogDescription>
             </DialogHeader>
+
+            <div className="mt-4 border-t border-gray-700 pt-4">
+                <Accordion type="single" collapsible>
+                    <AccordionItem value="item-1">
+                        <AccordionTrigger className='text-lg'>Пост-анализ для эксперта</AccordionTrigger>
+                        <AccordionContent>
+                            <div className="space-y-6 text-gray-300 pt-4">
+                                {/* CASE_ANALYSIS */}
+                                <div className="space-y-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
+                                    <h4 className="font-semibold text-lg text-white">Анализ кейса</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="case_source">Источник</Label>
+                                            <Input id="case_source" value={caseAnalysis.case_source} onChange={e => setCaseAnalysis({...caseAnalysis, case_source: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="case_number">Номер кейса</Label>
+                                            <Input id="case_number" value={caseAnalysis.case_number} onChange={e => setCaseAnalysis({...caseAnalysis, case_number: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="user_conversation_summary">Краткое содержание</Label>
+                                        <Textarea id="user_conversation_summary" value={caseAnalysis.user_conversation_summary} onChange={e => setCaseAnalysis({...caseAnalysis, user_conversation_summary: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="user_conclusions">Выводы пользователя</Label>
+                                        <Textarea id="user_conclusions" value={caseAnalysis.user_conclusions} onChange={e => setCaseAnalysis({...caseAnalysis, user_conclusions: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
+                                    </div>
+                                </div>
+
+                                {/* ANSWER_FOR_EXPERT */}
+                                <div className="space-y-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
+                                    <h4 className="font-semibold text-lg text-white">Ответ для эксперта</h4>
+                                    <div>
+                                        <Label htmlFor="text_description">Текстовое описание</Label>
+                                        <Textarea id="text_description" value={expertAnswer.text_description} onChange={e => setExpertAnswer({...expertAnswer, text_description: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={4}/>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="solution_steps">Шаги решения (каждый с новой строки)</Label>
+                                        <Textarea id="solution_steps" value={expertAnswer.solution_steps} onChange={e => setExpertAnswer({...expertAnswer, solution_steps: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={4}/>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label htmlFor="code_type">Тип кода</Label>
+                                            <Select value={expertAnswer.code_type} onValueChange={value => setExpertAnswer({...expertAnswer, code_type: value})}>
+                                                <SelectTrigger id="code_type" className="mt-1 bg-gray-700 border-gray-600">
+                                                    <SelectValue placeholder="Выберите тип" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="JSON">JSON</SelectItem>
+                                                    <SelectItem value="SQL">SQL</SelectItem>
+                                                    <SelectItem value="Log">Log</SelectItem>
+                                                    <SelectItem value="XML">XML</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="code">Пример кода или лога</Label>
+                                        <Textarea id="code" value={expertAnswer.code} onChange={e => setExpertAnswer({...expertAnswer, code: e.target.value})} className="mt-1 bg-gray-700 border-gray-600 font-mono" rows={6}/>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="important_notes">Важные примечания (каждое с новой строки)</Label>
+                                        <Textarea id="important_notes" value={expertAnswer.important_notes} onChange={e => setExpertAnswer({...expertAnswer, important_notes: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={3}/>
+                                    </div>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </div>
+
             <DialogFooter className="mt-6 flex justify-between w-full">
               {isEditMode ? (
                 <div className='flex justify-end w-full'>
