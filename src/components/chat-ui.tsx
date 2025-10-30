@@ -324,7 +324,7 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-full flex flex-col shadow-none bg-card rounded-none">
+        <Card className="w-full h-full flex flex-col shadow-none bg-card">
         <CardHeader className="border-b p-2">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex-1 flex items-center">
@@ -486,3 +486,4 @@ export default function ChatUI() {
     </div>
   );
 }
+
