@@ -167,17 +167,20 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime }: { content
     }
 
     let displayContent;
+    let logs;
     if (typeof content === 'string') {
         displayContent = content;
     } else if (content && typeof content === 'object') {
         displayContent = content.text || content.output;
+        logs = content.logs;
     } else {
         displayContent = JSON.stringify(content);
     }
-
+    
     return (
         <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
+            {logs && logs.length > 0 && <LogMessage logs={logs} />}
             <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} />
         </div>
     );
@@ -266,17 +269,18 @@ export default function ChatUI() {
       const responseTime = endTime - startTime;
 
       let botContent: any;
+      let logs;
       
       if (result?.response) {
         try {
             const parsedResponse = JSON.parse(result.response);
             botContent = parsedResponse[0];
         } catch (e) {
-            botContent = result.response;
+            botContent = { text: result.response, logs: result.logs };
         }
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
-        botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
+        botContent = { text: <span className="text-destructive">Ошибка: {errorString}</span>, logs: result.logs };
       } else {
         botContent = <span className="text-destructive">Произошла неизвестная ошибка.</span>;
       }
@@ -312,7 +316,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto relative">
+    <div className="w-full h-full relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -320,10 +324,10 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
-        <CardHeader className="border-b p-4">
-          <div className="flex w-full items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
+        <Card className="w-full h-full flex flex-col shadow-none bg-card rounded-none">
+        <CardHeader className="border-b p-2">
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="flex-1 flex items-center">
               <Button
                 variant="ghost"
                 size="sm"
@@ -335,14 +339,15 @@ export default function ChatUI() {
                 Новый чат
               </Button>
             </div>
-            <CardTitle className="font-headline text-2xl">
+            <CardTitle className="font-headline text-2xl text-center flex-1">
               ИИ Ментор
             </CardTitle>
+            <div className="flex-1"></div>
           </div>
         </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-4 md:p-6">
+            <CardContent className="flex-1 overflow-hidden p-2 md:p-4">
                 <ScrollArea className="h-full">
-                <div className="space-y-4 pr-4">
+                <div className="space-y-4 pr-2">
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
@@ -373,7 +378,7 @@ export default function ChatUI() {
                             )}
                             <div
                             className={cn(
-                                'rounded-lg px-4 py-2 shadow-md',
+                                'rounded-lg px-4 py-2 shadow-md max-w-full',
                                 message.role === 'user'
                                 ? 'bg-primary text-primary-foreground rounded-br-none max-w-md lg:max-w-2xl'
                                 : 'bg-muted text-card-foreground rounded-bl-none',
@@ -406,9 +411,9 @@ export default function ChatUI() {
                 </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="border-t pt-4">
+            <CardFooter className="border-t py-[5px]">
                 <div className="w-full">
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-3 mb-2">
                          <span className="text-sm font-medium text-muted-foreground">Источник:</span>
                         <Button
                             onClick={() => setSiteEnabled(!siteEnabled)}
