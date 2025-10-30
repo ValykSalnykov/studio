@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Users, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { AccountModal } from './account-modal';
 
 export default function UserAuth() {
@@ -66,10 +66,9 @@ export default function UserAuth() {
     <div>
       {user ? (
         <>
-          <div className='flex items-center space-x-6 text-sm font-medium text-white'>
-            <a href="#" onClick={handleAccountClick} className="flex items-center space-x-1.5 hover:text-gray-200">
-                <Users size={16} />
-                <span>Про мій аккаунт</span>
+          <div className='flex items-center space-x-4 text-sm font-medium text-white'>
+            <a href="#" onClick={handleAccountClick} className="hover:text-gray-200">
+                Мій аккаунт
             </a>
             <button onClick={handleSignOut} className="flex items-center space-x-1.5 hover:text-gray-200">
                 <LogOut size={16} />

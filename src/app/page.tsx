@@ -6,6 +6,8 @@ import {
   FileText,
   Clock,
   Download,
+  Library,
+  GraduationCap,
 } from 'lucide-react';
 
 const MotionLink = motion(Link);
@@ -35,6 +37,18 @@ const features = [
     icon: Clock,
     description: 'Отслеживание и управление временем задач',
   },
+  {
+    name: 'База знаний',
+    href: 'https://kb.daolog.net/',
+    icon: Library,
+    description: 'Официальная документация и база знаний',
+  },
+  {
+    name: 'Экзамен',
+    href: 'https://matrix.daolog.net/page35616510.html',
+    icon: GraduationCap,
+    description: 'Платформа для прохождения экзаменов',
+  },
 ];
 
 export default function Home() {
@@ -48,7 +62,7 @@ export default function Home() {
           Ваш центр управления приложениями и инструментами
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((feature) => (
           <MotionLink
             key={feature.name}
@@ -56,6 +70,7 @@ export default function Home() {
             className="group relative block p-8 h-48 w-64 overflow-hidden rounded-lg bg-gray-800 shadow-lg border border-gray-700 transition-all duration-100 hover:border-amber-400 hover:shadow-amber-400/20"
             whileHover={{ scale: 1.05, y: -5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+            {...(feature.href.startsWith('http') && { target: '_blank', rel: 'noopener noreferrer' })}
           >
             <div className="flex flex-col justify-between h-full">
               <div>
