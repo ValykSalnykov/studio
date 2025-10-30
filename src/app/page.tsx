@@ -8,6 +8,7 @@ import {
   Download,
   Library,
   GraduationCap,
+  ExternalLink,
 } from 'lucide-react';
 
 const MotionLink = motion(Link);
@@ -23,7 +24,7 @@ const features = [
     name: 'Cases',
     href: '/cases/working',
     icon: FileText,
-    description: 'Работа с кейсами телеграма',
+    description: 'Работа с кейсами',
   },
   {
     name: 'Syrve Install',
@@ -44,7 +45,7 @@ const features = [
     description: 'Официальная документация и база знаний',
   },
   {
-    name: 'Экзамен',
+    name: 'Сайт Матрицы',
     href: 'https://matrix.daolog.net/page35616510.html',
     icon: GraduationCap,
     description: 'Платформа для прохождения экзаменов',
@@ -56,7 +57,7 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-[5rem] drop-shadow-lg">
-          DAO Apps
+          DAO Hub
         </h1>
         <p className="mt-4 text-xl text-gray-400">
           Ваш центр управления приложениями и инструментами
@@ -75,7 +76,12 @@ export default function Home() {
             <div className="flex flex-col justify-between h-full">
               <div>
                 <feature.icon className="h-8 w-8 text-white" />
-                <h3 className="mt-4 text-xl font-bold text-white">{feature.name}</h3>
+                <div className="flex items-center mt-4">
+                  <h3 className="text-xl font-bold text-white">{feature.name}</h3>
+                  {feature.href.startsWith('http') && (
+                    <ExternalLink className="h-4 w-4 text-gray-400 ml-2" />
+                  )}
+                </div>
               </div>
               <p className="mt-2 text-sm text-gray-400">{feature.description}</p>
             </div>

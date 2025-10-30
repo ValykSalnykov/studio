@@ -82,7 +82,7 @@ export function Navigation() {
     <header className="bg-[#1A237E] text-white shadow-md">
       <div className="container mx-auto flex items-center justify-between p-2">
         <div className="w-1/4">
-           <Link href="/" className="text-lg font-bold">DAO apps</Link>
+           <Link href="/" className="text-lg font-bold">DAO Hub</Link>
         </div>
 
         {!isHomePage && (

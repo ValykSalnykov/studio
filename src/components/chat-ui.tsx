@@ -193,8 +193,8 @@ export default function ChatUI() {
   const [selectedMessageForFeedback, setSelectedMessageForFeedback] = useState<string | undefined>(undefined);
   const [initialCase, setInitialCase] = useState<Case | undefined>();
 
-  const [siteEnabled, setSiteEnabled] = useState(false);
-  const [bzEnabled, setBzEnabled] = useState(false);
+  const [siteEnabled, setSiteEnabled] = useState(true);
+  const [bzEnabled, setBzEnabled] = useState(true);
   const [telegramEnabled, setTelegramEnabled] = useState(false);
 
   const handleNewChat = () => {
