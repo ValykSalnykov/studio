@@ -312,7 +312,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-[90vw] mx-auto relative">
+    <div className="w-full max-w-4xl mx-auto relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -340,9 +340,9 @@ export default function ChatUI() {
             </CardTitle>
           </div>
         </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-6">
+            <CardContent className="flex-1 overflow-hidden p-4 md:p-6">
                 <ScrollArea className="h-full">
-                <div className="space-y-6 pr-4">
+                <div className="space-y-4 pr-4">
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
