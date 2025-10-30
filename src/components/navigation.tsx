@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import UserAuth from '@/components/user-auth';
-import { Download, Bot, FolderKanban, Clock } from 'lucide-react';
+import { Download, Bot, FolderKanban, Clock, Library, GraduationCap, ExternalLink } from 'lucide-react';
 
 // Defines the entire navigation structure
-const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[] }> = {
+const navigationConfig: Record<string, { href?: string; icon?: React.ElementType; subLinks: any[], external?: boolean }> = {
   'AI Tools': {
     icon: Bot,
     subLinks: [
@@ -34,6 +34,18 @@ const navigationConfig: Record<string, { href?: string; icon?: React.ElementType
     href: '/time-tracker',
     icon: Clock,
     subLinks: []
+  },
+  'База знаний': {
+    href: 'https://kb.daolog.net/',
+    icon: Library,
+    subLinks: [],
+    external: true,
+  },
+  'Экзамены': {
+    href: 'https://matrix.daolog.net/page35616510.html',
+    icon: GraduationCap,
+    subLinks: [],
+    external: true,
   }
 };
 
@@ -47,6 +59,12 @@ export function Navigation() {
     if (['/', '/ai-mentor', '/templator', '/deep-search'].includes(pathname)) {
       return 'AI Tools';
     }
+    // For external links, we don't want to set an active main link
+    const currentLink = Object.entries(navigationConfig).find(([_, config]) => config.href === pathname);
+    if (currentLink && currentLink[1].external) {
+        return '';
+    }
+    
     return 'AI Tools'; // Fallback
   };
   
@@ -74,6 +92,22 @@ export function Navigation() {
               const commonClasses = 'flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200';
               const activeClasses = 'bg-black/25 text-amber-400 shadow-inner';
               const inactiveClasses = 'hover:bg-black/20 text-white/90';
+
+              if (linkConfig.external) {
+                return (
+                  <a
+                    key={label}
+                    href={linkConfig.href || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(commonClasses, inactiveClasses)}
+                  >
+                    {linkConfig.icon && <linkConfig.icon size={16} />}
+                    <span>{label}</span>
+                    <ExternalLink size={12} className="opacity-70" />
+                  </a>
+                )
+              }
 
               if (linkConfig.subLinks.length > 0) {
                 return (
