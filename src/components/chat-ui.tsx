@@ -312,7 +312,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-[90vw] mx-auto relative">
+    <div className="w-[95vw] mx-auto relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -320,7 +320,7 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
+        <Card className="w-full h-[85vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
         <CardHeader className="border-b p-4">
           <div className="flex w-full items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -446,7 +446,7 @@ export default function ChatUI() {
                     </div>
                     <form
                     onSubmit={handleSubmit}
-                    className="w-full flex items-center gap-3"
+                    className="flex items-center gap-3"
                     >
                         <Popover>
                             <PopoverTrigger asChild>
