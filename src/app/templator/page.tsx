@@ -192,8 +192,8 @@ export default function TemplatorPage() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto relative">
-        <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
+    <div className="w-full max-w-full mx-auto relative">
+        <Card className="w-full h-[95vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-center text-2xl">Шаблонизатор</CardTitle>
             </CardHeader>
