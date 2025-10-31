@@ -24,9 +24,16 @@ export default function UserAuth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
-      setUser(user);
       if (user) {
+        const appUser = {
+          uid: user.uid,
+          email: user.email,
+          displayName: 'Тестович Тест', // Устанавливаем тестовое имя
+        };
+        setUser(appUser);
         setIsDialogOpen(false);
+      } else {
+        setUser(null);
       }
     });
     return () => unsubscribe();
@@ -62,13 +69,30 @@ export default function UserAuth() {
     setIsAccountModalOpen(true);
   };
 
+  const renderUserDisplayName = () => {
+    if (!user?.displayName) {
+      return <div className="hover:text-gray-200">Мій аккаунт</div>;
+    }
+
+    const nameParts = user.displayName.split(' ');
+    const lastName = nameParts.length > 0 ? nameParts[0] : '';
+    const firstName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
+    return (
+      <div className="text-right leading-tight">
+        <div>{lastName}</div>
+        <div>{firstName}</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {user ? (
         <>
           <div className='flex items-center space-x-4 text-sm font-medium text-white'>
             <a href="#" onClick={handleAccountClick} className="hover:text-gray-200">
-                Мій аккаунт
+                {renderUserDisplayName()}
             </a>
             <button onClick={handleSignOut} className="flex items-center space-x-1.5 hover:text-gray-200">
                 <LogOut size={16} />

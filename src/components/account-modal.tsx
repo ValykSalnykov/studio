@@ -32,11 +32,18 @@ export function AccountModal({ open, onOpenChange, user }: { open: boolean, onOp
         </AlertDialogHeader>
         {user && (
           <div className="space-y-4">
-            <p>Email: {user.email}</p>
+            <div>
+              <Label>Ім'я та прізвище</Label>
+              <p className="text-sm text-gray-300 mt-1">{user.displayName || 'Не вказано'}</p>
+            </div>
+            <div>
+              <Label>Email</Label>
+              <p className="text-sm text-gray-300 mt-1">{user.email}</p>
+            </div>
             <div>
               <Label htmlFor="role-select">Роль</Label>
               <Select onValueChange={setRole} defaultValue={role ?? undefined}>
-                <SelectTrigger id="role-select" className="w-full bg-gray-800 border-gray-600 text-gray-50">
+                <SelectTrigger id="role-select" className="w-full bg-gray-800 border-gray-600 text-gray-50 mt-1">
                   <SelectValue placeholder="Виберіть роль" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 text-gray-50 border-gray-600">
