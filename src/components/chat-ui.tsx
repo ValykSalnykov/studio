@@ -74,6 +74,8 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 return 'telegrambad';
             case 'Наша база знаний':
                 return 'knowledge';
+            case 'Официальная документация Syrve':
+                return 'site';
             default:
                 return null;
         }

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 
-interface TelegramCheckItem {
+interface CheckCaseItem {
   id: number;
   content: string | null;
 }
@@ -57,9 +57,9 @@ function parseContent(content: string | null): ParsedContent {
   return { theme, question, answer };
 }
 
-export default function RabochiePage() {
-  const [data, setData] = useState<TelegramCheckItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<TelegramCheckItem | null>(null);
+export default function WorkingCasesPage() {
+  const [data, setData] = useState<CheckCaseItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<CheckCaseItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -76,8 +76,8 @@ export default function RabochiePage() {
   });
 
   useEffect(() => {
-    async function getTelegramCheckData() {
-      const { data, error } = await supabase.from('telegramcheck').select('id, content');
+    async function getCheckCasesData() {
+      const { data, error } = await supabase.from('checkcases').select('id, content');
       if (error) {
         console.error('Error fetching data from Supabase:', error);
         setData([]);
@@ -85,12 +85,12 @@ export default function RabochiePage() {
         setData(data || []);
       }
     }
-    getTelegramCheckData();
+    getCheckCasesData();
   }, []);
 
   const parsedSelectedItem = useMemo(() => selectedItem ? parseContent(selectedItem.content) : null, [selectedItem]);
 
-  const handleCardClick = (item: TelegramCheckItem) => {
+  const handleCardClick = (item: CheckCaseItem) => {
     setSelectedItem(item);
     setIsModalOpen(true);
     setIsEditMode(false);
@@ -110,7 +110,7 @@ export default function RabochiePage() {
 
     const newContent = `Тема: ${editedTheme}; Вопрос: ${editedQuestion}; Ответ: ${editedAnswer}`;
     const { data: updatedData, error } = await supabase
-      .from('telegramcheck')
+      .from('checkcases')
       .update({ content: newContent })
       .eq('id', selectedItem.id)
       .select();
@@ -134,7 +134,7 @@ export default function RabochiePage() {
       case 'ok':
         toast({
           title: "Действие: ОК",
-          description: "Кейс будет удален из таблицы `telegramcheck`.",
+          description: "Кейс будет удален из таблицы `checkcases`.",
         });
         break;
       case 'not_ok':
