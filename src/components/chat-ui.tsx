@@ -66,21 +66,6 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
     const { toast } = useToast();
     const [voteSent, setVoteSent] = useState<number | null>(null);
 
-    const getTableName = (source: string): string | null => {
-        switch (source) {
-            case 'проверенный канал Навчання':
-                return 'telegram';
-            case 'непроверенный канал Навчання':
-                return 'telegrambad';
-            case 'Наша база знаний':
-                return 'knowledge';
-            case 'Официальная документация Syrve':
-                return 'site';
-            default:
-                return null;
-        }
-    };
-
     const handleVote = async (vote: number) => {
         if (voteSent !== null) {
             return;
@@ -94,17 +79,8 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             });
             return;
         }
-        
-        const tableName = getTableName(content.source);
 
-        if (!tableName) {
-            toast({
-                title: 'Ошибка',
-                description: `Неизвестный источник для отзыва: "${content.source}"`, 
-                variant: 'destructive',
-            });
-            return;
-        }
+        const tableName = content.source; 
 
         const payload = {
             target_table: tableName,
@@ -130,7 +106,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         }
 
         const { data, error: selectError } = await supabase
-            .from(payload.target_table)
+            .from(tableName)
             .select('trust_level')
             .eq('id', payload.target_id)
             .maybeSingle();
