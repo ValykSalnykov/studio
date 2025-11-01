@@ -21,6 +21,8 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FeedbackModal } from './feedback-modal';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface Case {
@@ -60,20 +62,96 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
   );
 }
 
-function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () => void, responseTime?: number }) {
-    const [feedback, setFeedback] = useState<string | null>(null);
+function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
+    const { toast } = useToast();
+    const [voteSent, setVoteSent] = useState<number | null>(null);
 
-    const handleFeedbackClick = (type: string) => {
-        if (type === 'detailed') {
-            onOpenFeedback();
-            setFeedback('detailed');
-        } else {
-            setFeedback(type);
+    const getTableName = (source: string): string | null => {
+        switch (source) {
+            case 'проверенный канал Навчання':
+                return 'telegram';
+            case 'непроверенный канал Навчання':
+                return 'telegrambad';
+            case 'Наша база знаний':
+                return 'knowledge';
+            default:
+                return null;
         }
     };
 
-    const isButtonDisabled = (type: string) => {
-        return feedback !== null && feedback !== type;
+    const handleVote = async (vote: number) => {
+        if (voteSent !== null) {
+            return;
+        }
+
+        if (!content || !content.source || !content.case) {
+            toast({
+                title: 'Ошибка',
+                description: 'Недостаточно данных для отправки отзыва.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        
+        const tableName = getTableName(content.source);
+
+        if (!tableName) {
+            toast({
+                title: 'Ошибка',
+                description: `Неизвестный источник для отзыва: "${content.source}"`, 
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const payload = {
+            target_table: tableName,
+            target_id: content.case,
+            user_id: null, 
+            vote: vote,
+        };
+
+        setVoteSent(vote);
+
+        const { error } = await supabase.from('feedback_votes').upsert(payload, {
+            onConflict: 'target_table, target_id, user_id'
+        });
+
+        if (error) {
+            toast({
+                title: 'Ошибка',
+                description: `Не удалось отправить отзыв: ${error.message}`,
+                variant: 'destructive',
+            });
+            setVoteSent(null);
+            return;
+        }
+
+        const { data, error: selectError } = await supabase
+            .from(payload.target_table)
+            .select('trust_level')
+            .eq('id', payload.target_id)
+            .maybeSingle();
+
+        if (selectError) {
+             toast({
+                title: 'Спасибо за ваш отзыв!',
+                description: `Не удалось получить обновленный статус кейса: ${selectError.message}`,
+            });
+            return;
+        }
+
+        if (data) {
+            toast({
+                title: 'Спасибо за ваш отзыв!',
+                description: `Новый уровень доверия: ${data.trust_level}`,
+            });
+        } else {
+            toast({
+                title: 'Спасибо!',
+                description: 'Кейс перемещён в модерацию.',
+            });
+        }
     };
 
     const formatResponseTime = (time?: number) => {
@@ -95,9 +173,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'like' && "text-green-500")}
-                                onClick={() => handleFeedbackClick('like')}
-                                disabled={isButtonDisabled('like')}
+                                className={cn("h-6 w-6", voteSent === 1 && "text-green-500")}
+                                onClick={() => handleVote(1)}
+                                disabled={voteSent !== null}
                             >
                                 <ThumbsUp className="h-4 w-4" />
                             </Button>
@@ -111,9 +189,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'ok' && "text-yellow-500")}
-                                onClick={() => handleFeedbackClick('ok')}
-                                disabled={isButtonDisabled('ok')}
+                                className={cn("h-6 w-6", voteSent === -0.5 && "text-yellow-500")}
+                                onClick={() => handleVote(-0.5)}
+                                disabled={voteSent !== null}
                             >
                                 <Meh className="h-4 w-4" />
                             </Button>
@@ -127,9 +205,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'dislike' && "text-red-500")}
-                                onClick={() => handleFeedbackClick('dislike')}
-                                disabled={isButtonDisabled('dislike')}
+                                className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
+                                onClick={() => handleVote(-2)}
+                                disabled={voteSent !== null}
                             >
                                 <ThumbsDown className="h-4 w-4" />
                             </Button>
@@ -143,9 +221,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'detailed' && "text-blue-500")}
-                                onClick={() => handleFeedbackClick('detailed')}
-                                disabled={isButtonDisabled('detailed')}
+                                onClick={onOpenFeedback}
                             >
                                 <MessageSquareText className="h-4 w-4" />
                             </Button>
@@ -161,7 +237,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
     );
 }
 
-function BotMessage({ content, typing, onOpenFeedback, responseTime }: { content: any, typing?: boolean, onOpenFeedback: () => void, responseTime?: number }) {
+function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser }: { content: any, typing?: boolean, onOpenFeedback: () => void, responseTime?: number, currentUser: FirebaseUser | null }) {
     if (typing) {
         return <TypingIndicator />;
     }
@@ -178,7 +254,7 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime }: { content
     return (
         <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
-            <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} />
+            <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={content} currentUser={currentUser} />
         </div>
     );
 }
@@ -386,6 +462,7 @@ export default function ChatUI() {
                                         typing={message.typing} 
                                         onOpenFeedback={() => openFeedbackModal(message.content)}
                                         responseTime={message.responseTime}
+                                        currentUser={currentUser}
                                     />
                                 ) : (
                                     <div className="text-sm break-words">{message.content}</div>
