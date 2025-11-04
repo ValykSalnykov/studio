@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
+import { PictureInPicture2 } from 'lucide-react';
 
 export default function SyrveInstallPage() {
   const installs = [
@@ -24,38 +25,56 @@ export default function SyrveInstallPage() {
     },
   ];
 
+  const handlePipToggle = () => {
+    if ((window as any).__interactiveTabPiP) {
+      (window as any).__interactiveTabPiP.toggle({
+        mode: 'element-only',
+        targetSelector: '.App .main-container .single-column',
+      });
+    } else {
+      console.log("PiP API not available");
+    }
+  };
+
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="bg-card p-6 rounded-lg shadow-lg border border-border">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 mb-4 border-b border-border">
-          <h2 className="text-2xl font-bold text-blue-400 mb-4 md:mb-0">
-            Встановлення BackOffice / Chain
-          </h2>
-          <div className="flex items-center space-x-2">
-            <Button className="bg-green-600 hover:bg-green-700 text-white font-semibold">Поточні</Button>
-            <Button variant="secondary" className="bg-gray-500 hover:bg-gray-600 text-gray-300 font-semibold">Архів</Button>
-            <Button variant="outline" className="h-9 w-9 p-0 bg-blue-500 border-blue-400 hover:bg-blue-600">
-              <div className="w-4 h-4 border-2 border-white rounded-sm"></div>
-            </Button>
-            <Button variant="outline" className="h-9 w-9 p-0 bg-blue-500 border-blue-400 hover:bg-blue-600">
-              <div className="w-4 h-4 border-2 border-white rounded-sm"></div>
-            </Button>
-          </div>
-        </div>
-        
-        <div className="space-y-3">
-          {installs.map((install) => (
-            <div key={install.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
-              <div className="flex items-center space-x-4 mb-2 md:mb-0">
-                <span className="font-mono text-sm text-foreground">{install.domain}</span>
-                <span className={`text-sm font-semibold ${install.statusColor}`}>{install.status}</span>
-              </div>
+    <div className="App">
+      <div className="main-container">
+        <div className="single-column">
+          <div className="bg-card p-6 rounded-lg shadow-lg border border-border">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 mb-4 border-b border-border">
+              <h2 className="text-2xl font-bold text-blue-400 mb-4 md:mb-0">
+                Встановлення BackOffice / Chain
+              </h2>
               <div className="flex items-center space-x-2">
-                <Button size="sm" variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500/10">Детальніше</Button>
-                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">Архів</Button>
+                <Button className="bg-green-600 hover:bg-green-700 text-white font-semibold">Поточні</Button>
+                <Button variant="secondary" className="bg-gray-500 hover:bg-gray-600 text-gray-300 font-semibold">Архів</Button>
+
+                <Button
+                  variant="outline"
+                  className="h-9 w-9 p-0 bg-blue-500 border-blue-400 hover:bg-blue-600"
+                  onClick={handlePipToggle}
+                  title="Toggle PiP"
+                >
+                  <PictureInPicture2 className="w-4 h-4 text-white" />
+                </Button>
               </div>
             </div>
-          ))}
+            
+            <div className="space-y-3">
+              {installs.map((install) => (
+                <div key={install.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center space-x-4 mb-2 md:mb-0">
+                    <span className="font-mono text-sm text-foreground">{install.domain}</span>
+                    <span className={`text-sm font-semibold ${install.statusColor}`}>{install.status}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500/10">Детальніше</Button>
+                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">Архів</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
