@@ -20,6 +20,7 @@ const navigationConfig: Record<string, { href?: string; icon?: React.ElementType
   'Cases': {
     icon: FolderKanban,
     subLinks: [
+        { href: '/cases/unprocessed', label: 'Необработанные' },
         { href: '/cases/working', label: 'Робочі кейси' },
         { href: '/cases/complex', label: 'Складні кейси' },
         { href: '/cases/pending', label: 'Отложенные' },

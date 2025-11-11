@@ -1,154 +1,262 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/rpc';
 
-type ClusterItem = Awaited<ReturnType<typeof api.getCluster>>[number];
+type NeighborItem = Awaited<ReturnType<typeof api.getSimilarPairs>>[number];
+
+interface RecordModalViewProps {
+  id: number;
+  onChanged: () => void;
+  onClose: () => void;
+  depth: number;
+  setModalContent: (c: React.ReactNode) => void;
+}
+
+// A more robust parser for the content string
+const parseContent = (content: string | null | undefined) => {
+  if (!content) return { theme: '', question: '', answer: '' };
+
+  const keywords = ["Тема:", "Вопрос:", "Ответ:"];
+  const parts: { [key: string]: string } = { theme: '', question: '', answer: '' };
+  const keyMap: { [key: string]: string } = {
+    "Тема:": "theme",
+    "Вопрос:": "question",
+    "Ответ:": "answer"
+  };
+
+  let lastIndex = -1;
+  let lastKeyword: string | null = null;
+
+  // Find all keyword occurrences and their indices
+  const foundKeywords = keywords
+    .map(k => ({ keyword: k, index: content.indexOf(k) }))
+    .filter(item => item.index !== -1)
+    .sort((a, b) => a.index - b.index);
+
+  // If no keywords are found, it's all an answer
+  if (foundKeywords.length === 0) {
+    return { theme: '', question: '', answer: content.trim() };
+  }
+
+  // Iterate through found keywords to slice the content
+  for (let i = 0; i < foundKeywords.length; i++) {
+    const current = foundKeywords[i];
+    const next = foundKeywords[i + 1];
+    
+    const start = current.index + current.keyword.length;
+    const end = next ? next.index : content.length;
+    
+    const text = content.substring(start, end).trim().replace(/;$/, '').trim();
+    
+    const fieldName = keyMap[current.keyword];
+    if (fieldName) {
+      parts[fieldName] = text;
+    }
+  }
+
+  return parts;
+};
+
+const formatContent = (theme: string, question: string, answer: string) => {
+  const parts = [];
+  if (theme) parts.push(`Тема: ${theme}`);
+  if (question) parts.push(`Вопрос: ${question}`);
+  if (answer) parts.push(`Ответ: ${answer}`);
+  return parts.join('; ') + (parts.length > 0 ? ';' : '');
+};
+
+const RecordModalView: React.FC<RecordModalViewProps> = (props) => {
+    const { id, onChanged, onClose, depth, setModalContent } = props;
+    const [neighbors, setNeighbors] = useState<NeighborItem[] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const [theme, setTheme] = useState('');
+    const [question, setQuestion] = useState('');
+    const [answer, setAnswer] = useState('');
+    
+    const [originalState, setOriginalState] = useState({ theme: '', question: '', answer: '' });
+
+    async function load() {
+        setLoading(true);
+        setError(null);
+        try {
+            const [recordData, similarData] = await Promise.all([
+                api.getCluster(id).then(res => res?.[0]),
+                api.getSimilarPairs({ id })
+            ]);
+
+            const parsed = parseContent(recordData?.content);
+            setTheme(parsed.theme);
+            setQuestion(parsed.question);
+            setAnswer(parsed.answer);
+            setOriginalState(parsed); // Save original state
+
+            setNeighbors(similarData);
+        } catch (e: any) {
+            setError(String(e.message ?? e));
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => { load(); }, [id]);
+
+    async function handleSave() {
+        setBusy(true);
+        setError(null);
+        try {
+            const newContent = formatContent(theme, question, answer);
+            await api.editRecord({ id, newContent, metadataPatch: { edited: true } });
+            alert('Сохранено');
+            setEditing(false);
+            setOriginalState({ theme, question, answer });
+            onChanged();
+        } catch (e: any) {
+            setError(String(e.message ?? e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function handleCancelEdit() {
+        setEditing(false);
+        setTheme(originalState.theme);
+        setQuestion(originalState.question);
+        setAnswer(originalState.answer);
+    }
+    
+    async function handleSendOk() {
+        setBusy(true); setError(null);
+        try {
+            const res = await api.sendOk({ id, archiveSource: true, allowArchived: false, metadataExtra: {}, dedupeByContent: false });
+            alert(`Отправлено в telegram (id=${res?.[0]?.telegram_id ?? '—'})`);
+            onChanged();
+            onClose();
+        } catch (e: any) {
+            setError(String(e.message ?? e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function handleNotOk() {
+        setBusy(true); setError(null);
+        try {
+            await api.setNotOk(id, 'manual');
+            alert('Запись заархивирована');
+            onChanged();
+            onClose();
+        } catch (e: any) {
+            setError(String(e.message ?? e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function openNeighbor(neighborId: number) {
+        if (depth > 5) {
+            alert("Достигнута максимальная глубина вложенности модальных окон.");
+            return;
+        }
+        setModalContent(<RecordModalView id={neighborId} onChanged={onChanged} onClose={onClose} depth={depth + 1} setModalContent={setModalContent} />);
+    }
+
+    return (
+        <>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Запись #{id}</h3>
+            </div>
+
+            {error && <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded relative mb-4">{error}</div>}
+            
+            {loading ? <div className="text-center py-4">Загрузка…</div> : (
+                <>
+                    <div className="mb-4 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Тема</label>
+                            <textarea value={theme} readOnly={!editing} onChange={(e) => setTheme(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 min-h-[40px]" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Вопрос</label>
+                            <textarea value={question} readOnly={!editing} onChange={(e) => setQuestion(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 min-h-[80px]" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Ответ</label>
+                            <textarea value={answer} readOnly={!editing} onChange={(e) => setAnswer(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 min-h-[150px]" />
+                        </div>
+                    </div>
+
+                    {!editing ? (
+                        <button onClick={() => setEditing(true)} className="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Редактировать</button>
+                    ) : (
+                        <div className="flex gap-2 mt-2">
+                            <button disabled={busy} onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Сохранить</button>
+                            <button disabled={busy} onClick={handleCancelEdit} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Отмена</button>
+                        </div>
+                    )}
+
+                    <div style={{ marginTop: 24 }}>
+                        <h4 className="text-lg font-bold mb-2">Похожие по смыслу</h4>
+                        {(!neighbors || neighbors.length === 0) ? <p className="text-gray-400">Похожих записей не найдено.</p> : (
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-700">
+                                        <th className="p-2">ID</th>
+                                        <th className="p-2">Sim</th>
+                                        <th className="p-2">Archived</th>
+                                        <th className="p-2">Canonical ID</th>
+                                        <th className="p-2">Content</th>
+                                        <th className="p-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {neighbors.map(n => (
+                                        <tr key={n.neighbor_id} className="border-b border-gray-800 hover:bg-gray-700">
+                                            <td className="p-2">{n.neighbor_id}</td>
+                                            <td className="p-2">{n.sim.toFixed(3)}</td>
+                                            <td className="p-2">{String(n.neighbor_archived)}</td>
+                                            <td className="p-2">{n.neighbor_canonical_id ?? '—'}</td>
+                                            <td className="p-2 max-w-md truncate" title={n.neighbor_content ?? ''}>
+                                                {(n.neighbor_content ?? '').slice(0, 160)}{(n.neighbor_content ?? '').length > 160 ? '…' : ''}
+                                            </td>
+                                            <td className="p-2">
+                                                <button onClick={() => openNeighbor(n.neighbor_id)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">Открыть</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    <div className="flex gap-4 mt-6">
+                        <button disabled={busy} onClick={handleSendOk} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Ок (в telegram)</button>
+                        <button disabled={busy} onClick={handleNotOk} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">неОк (в архив)</button>
+                    </div>
+                </>
+            )}
+        </>
+    );
+}
 
 export default function RecordModal(props: { id: number; onClose: () => void; onChanged: () => void; }) {
-const { id, onClose, onChanged } = props;
-const [items, setItems] = useState<ClusterItem[] | null>(null);
-const [loading, setLoading] = useState(false);
-const [content, setContent] = useState<string>('');
-const [editing, setEditing] = useState(false);
-const [busy, setBusy] = useState(false);
-const [error, setError] = useState<string | null>(null);
+    const { id, onClose, onChanged } = props;
+    const [modalContent, setModalContent] = useState<React.ReactNode>(null);
 
-async function load() {
-setLoading(true);
-setError(null);
-try {
-const data = await api.getCluster(id);
-setItems(data);
-const self = data.find(x => x.id === id) ?? data[0];
-setContent(self?.content ?? '');
-} catch (e: any) {
-setError(String(e.message ?? e));
-} finally {
-setLoading(false);
-}
-}
+    useEffect(() => {
+        setModalContent(<RecordModalView id={id} onChanged={onChanged} onClose={onClose} depth={1} setModalContent={setModalContent} />);
+    }, [id, onChanged, onClose]);
 
-useEffect(() => { load(); }, [id]);
-
-async function handleSendOk() {
-setBusy(true); setError(null);
-try {
-const res = await api.sendOk({ id, archiveSource: true, allowArchived: false, metadataExtra: {}, dedupeByContent: false });
-// res — массив из одного элемента
-alert(`Отправлено в telegram (id=${res?.[0]?.telegram_id ?? '—'})`);
-await load();
-onChanged();
-} catch (e: any) {
-setError(String(e.message ?? e));
-} finally {
-setBusy(false);
-}
-}
-
-async function handleNotOk() {
-setBusy(true); setError(null);
-try {
-await api.setNotOk(id, 'manual');
-alert('Запись заархивирована');
-await load();
-onChanged();
-} catch (e: any) {
-setError(String(e.message ?? e));
-} finally {
-setBusy(false);
-}
-}
-
-async function handleSave() {
-setBusy(true); setError(null);
-try {
-await api.editRecord({ id, newContent: content, metadataPatch: { edited: true } });
-alert('Сохранено');
-setEditing(false);
-await load();
-onChanged();
-} catch (e: any) { 
-setError(String(e.message ?? e));
-} finally {
-setBusy(false);
-}
-}
-
-return (
-<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-<div className="bg-gray-800 text-white rounded-lg shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
-<div className="flex justify-between items-center mb-4">
-<h3 className="text-xl font-bold">Запись #{id}</h3>
-<button onClick={onClose} className="text-gray-400 hover:text-white">Закрыть</button>
-</div>
-
-    {error && <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded relative mb-4">{error}</div>}
-    {loading || !items ? <div className="text-center py-4">Загрузка…</div> : (
-      <>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Текст</label>
-          <textarea
-            value={content}
-            readOnly={!editing}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-700 rounded p-2 min-h-[140px]"
-          />
-          {!editing ? (
-            <button onClick={() => setEditing(true)} className="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Редактировать</button>
-          ) : (
-            <div className="flex gap-2 mt-2">
-              <button disabled={busy} onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Сохранить</button>
-              <button disabled={busy} onClick={() => { setEditing(false); load(); }} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Отмена</button>
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 text-white rounded-lg shadow-lg p-6 w-full max-w-6xl max-h-[95vh] overflow-auto relative">
+                <button onClick={props.onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+                {modalContent}
             </div>
-          )}
         </div>
-
-        <div>
-          <h4 className="text-lg font-bold mb-2">Связанные</h4>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="p-3">ID</th>
-                <th className="p-3">Роль</th>
-                <th className="p-3">sim</th>
-                <th className="p-3">archived</th>
-                <th className="p-3">canonical_id</th>
-                <th className="p-3">Snippet</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map(it => (
-                <tr key={it.id} className="border-b border-gray-800 hover:bg-gray-700">
-                  <td className="p-3">{it.id}</td>
-                  <td className="p-3">{it.role}</td>
-                  <td className="p-3">{it.sim === null ? '—' : it.sim.toFixed(3)}</td>
-                  <td className="p-3">{String(it.archived)}</td>
-                  <td className="p-3">{it.canonical_id ?? '—'}</td>
-                  <td className="p-3 max-w-md truncate" title={it.content ?? ''}>{it.content}</td>
-                  <td className="p-3">
-                    <button onClick={() => {
-                      // открыть другую запись в этой же модалке
-                      window.history.pushState({}, '', `#${it.id}`);
-                      // хак: перезагрузим по id
-                      // лучше передать через внешний стейт, но для простоты:
-                      location.hash = String(it.id);
-                    }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Открыть</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex gap-4 mt-6">
-          <button disabled={busy} onClick={handleSendOk} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Ок (в telegram)</button>
-          <button disabled={busy} onClick={handleNotOk} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">неОк (в архив)</button>
-        </div>
-      </>
-    )}
-  </div>
-</div>
-);
+    );
 }
