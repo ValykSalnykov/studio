@@ -79,5 +79,8 @@ export const api = {
     rpc('archive_backup_record', { p_id: id, p_reason: reason }),
 
   editRecord: (args: { id: number; newContent: string; metadataPatch: object }) =>
-    rpc('edit_backup_content', { p_id: args.id, p_new_content: args.newContent, p_metadata_patch: args.metadataPatch })
+    rpc('edit_backup_content', { p_id: args.id, p_new_content: args.newContent, p_metadata_patch: args.metadataPatch }),
+
+  setCanonical: (args: { duplicateId: number, canonicalId: number }) =>
+    rpc<boolean>('set_canonical_telegrambad_backup', { p_duplicate_id: args.duplicateId, p_canonical_id: args.canonicalId })
 };
