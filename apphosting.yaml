@@ -6,12 +6,3 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
-  # Environment variables available to your app at runtime.
-  # For security, these values are references to secrets stored in Secret Manager.
-  # You must create these secrets in Google Cloud Secret Manager and grant
-  # the App Hosting service account access to them.
-  environmentVariables:
-    NEXT_PUBLIC_SUPABASE_URL:
-      secret: SUPABASE_URL
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
-      secret: SUPABASE_ANON_KEY
