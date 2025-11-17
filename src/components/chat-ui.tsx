@@ -239,7 +239,7 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     let showFeedback = true;
     const contentString = (typeof displayContent === 'string') ? displayContent : displayContent?.props?.children;
 
-    if (typeof contentString === 'string' && feedbackBlacklist.some(phrase => contentString.includes(phrase))) {
+    if (!contentString || (typeof contentString === 'string' && (feedbackBlacklist.some(phrase => contentString.includes(phrase))))) {
         showFeedback = false;
     }
 
@@ -383,7 +383,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full mx-auto relative p-5">
+    <div className="w-full mx-auto relative p-[20px]">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
