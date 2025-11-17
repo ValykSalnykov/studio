@@ -220,19 +220,33 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
         return <TypingIndicator />;
     }
 
-    let displayContent;
+    let displayContent: any;
     if (typeof content === 'string') {
         displayContent = content;
     } else if (content && typeof content === 'object') {
-        displayContent = content.text || content.output;
+        displayContent = content.output || content.text;
+    } else if (React.isValidElement(content)) {
+        displayContent = content;
     } else {
         displayContent = JSON.stringify(content);
+    }
+    
+    const feedbackBlacklist = [
+        "Отправляем на проверку данный случай эксперту. Спасибо за отзыв!",
+        "Ошибка при ответе ИИ. Позовите Валика"
+    ];
+    
+    let showFeedback = true;
+    const contentString = (typeof displayContent === 'string') ? displayContent : displayContent?.props?.children;
+
+    if (feedbackBlacklist.includes(contentString)) {
+        showFeedback = false;
     }
 
     return (
         <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
-            <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={content} currentUser={currentUser} />
+            {showFeedback && <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={content} currentUser={currentUser} />}
         </div>
     );
 }
@@ -366,7 +380,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-[95vw] mx-auto relative">
+    <div className="w-full mx-auto relative p-5">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -374,7 +388,7 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-[85vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
+        <Card className="w-full h-[85vh] md:h-[80vh] flex flex-col shadow-2xl bg-card rounded-lg">
         <CardHeader className="border-b p-4">
           <div className="flex w-full items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -394,9 +408,9 @@ export default function ChatUI() {
             </CardTitle>
           </div>
         </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-6">
+            <CardContent className="flex-1 overflow-hidden p-4">
                 <ScrollArea className="h-full">
-                <div className="space-y-6 pr-4">
+                <div className="space-y-4 pr-4">
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
