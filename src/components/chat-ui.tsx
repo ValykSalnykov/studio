@@ -383,7 +383,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full mx-auto relative p-[20px]">
+    <div className="w-full h-full relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -391,7 +391,7 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-[calc(100vh-40px)] flex flex-col shadow-2xl bg-card rounded-lg">
+        <Card className="w-full h-full flex flex-col shadow-2xl bg-card rounded-lg">
         <CardHeader className="border-b p-3">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
