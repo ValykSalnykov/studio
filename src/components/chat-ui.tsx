@@ -232,14 +232,14 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     }
     
     const feedbackBlacklist = [
-        "Отправляем на проверку данный случай эксперту. Спасибо за отзыв!",
-        "Ошибка при ответе ИИ. Позовите Валика"
+        "Отправляем на проверку",
+        "Ошибка при ответе ИИ"
     ];
     
     let showFeedback = true;
     const contentString = (typeof displayContent === 'string') ? displayContent : displayContent?.props?.children;
 
-    if (feedbackBlacklist.includes(contentString)) {
+    if (typeof contentString === 'string' && feedbackBlacklist.some(phrase => contentString.includes(phrase))) {
         showFeedback = false;
     }
 
@@ -334,6 +334,7 @@ export default function ChatUI() {
       const responseTime = endTime - startTime;
 
       let botContent: any;
+      let logs: string[] | undefined;
       
       if (result?.response) {
         try {
@@ -342,9 +343,11 @@ export default function ChatUI() {
         } catch (e) {
             botContent = result.response;
         }
+        logs = result.logs;
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
         botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
+        logs = result.logs;
       } else {
         botContent = <span className="text-destructive">Произошла неизвестная ошибка.</span>;
       }
@@ -388,9 +391,9 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-[85vh] md:h-[80vh] flex flex-col shadow-2xl bg-card rounded-lg">
-        <CardHeader className="border-b p-4">
-          <div className="flex w-full items-start justify-between gap-4">
+        <Card className="w-full h-[calc(100vh-40px)] flex flex-col shadow-2xl bg-card rounded-lg">
+        <CardHeader className="border-b p-3">
+          <div className="flex w-full items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <Button
                 variant="ghost"
@@ -403,9 +406,10 @@ export default function ChatUI() {
                 Новый чат
               </Button>
             </div>
-            <CardTitle className="font-headline text-2xl">
+            <CardTitle className="font-headline text-xl">
               ИИ Ментор
             </CardTitle>
+            <div className="w-24"></div>
           </div>
         </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-4">
@@ -475,7 +479,7 @@ export default function ChatUI() {
                 </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="border-t pt-4">
+            <CardFooter className="border-t pt-3 pb-3">
                 <div className="w-full">
                     <div className="flex items-center gap-3 mb-3">
                          <span className="text-sm font-medium text-muted-foreground">Источник:</span>
