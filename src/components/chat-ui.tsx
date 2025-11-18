@@ -24,6 +24,8 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 
 interface Case {
@@ -44,6 +46,15 @@ type Message = {
   typing?: boolean;
   responseTime?: number;
 };
+
+const DISLIKE_REASONS = [
+    { code: 'outdated', label: 'Устарело / инфа не актуальна' },
+    { code: 'broken', label: 'Не работает по инструкции' },
+    { code: 'incorrect', label: 'Неверное / содержит ошибки' },
+    { code: 'unclear', label: 'Непонятно объяснено' },
+    { code: 'duplicate', label: 'Повторяет другой ответ' },
+    { code: 'missing', label: 'Не хватает нужных деталей' },
+];
 
 function TypingIndicator() {
   return (
@@ -66,8 +77,12 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
 function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
     const { toast } = useToast();
     const [voteSent, setVoteSent] = useState<number | null>(null);
+    const [isDislikePopoverOpen, setDislikePopoverOpen] = useState(false);
+    const [pendingReasonCode, setPendingReasonCode] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleVote = async (vote: number) => {
+
+    const handleVote = async (vote: number, reasonCode?: string, reasonLabel?: string) => {
         if (voteSent !== null) {
             return;
         }
@@ -80,21 +95,43 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             });
             return;
         }
+        
+        if (!currentUser) {
+            toast({
+                title: 'Ошибка',
+                description: 'Необходимо авторизоваться.',
+                variant: 'destructive',
+            });
+            return;
+        }
 
-        const tableName = content.source; 
+        const tableName = content.source;
 
-        const payload = {
+        const payload: any = {
             target_table: tableName,
             target_id: content.case,
-            user_id: null, 
+            user_id: currentUser.uid,
             vote: vote,
         };
+        
+        if (reasonCode && reasonLabel) {
+            payload.reason_code = reasonCode;
+            payload.reason_label = reasonLabel;
+        }
 
-        setVoteSent(vote);
+        console.debug("Отправка отзыва:", {
+            code: reasonCode,
+            case: content.case,
+            source: content.source,
+        });
+        
+        setIsSubmitting(true);
 
         const { error } = await supabase.from('feedback_votes').upsert(payload, {
             onConflict: 'target_table, target_id, user_id'
         });
+
+        setIsSubmitting(false);
 
         if (error) {
             toast({
@@ -103,35 +140,45 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setVoteSent(null);
+            setDislikePopoverOpen(false);
             return;
         }
+        setVoteSent(vote);
 
-        const { data, error: selectError } = await supabase
-            .from(tableName)
-            .select('trust_level')
-            .eq('id', payload.target_id)
-            .maybeSingle();
-
-        if (selectError) {
+        if (vote === -2) {
              toast({
                 title: 'Спасибо за ваш отзыв!',
-                description: `Не удалось получить обновленный статус кейса: ${selectError.message}`,
+                description: `Отзыв сохранён: ${reasonLabel}`,
+            });
+        } else {
+             toast({
+                title: 'Спасибо за ваш отзыв!',
+                description: 'Ваш голос учтён.',
+            });
+        }
+        setDislikePopoverOpen(false);
+    };
+    
+    const handleDislikeClick = () => {
+        setPendingReasonCode(null);
+        setDislikePopoverOpen(true);
+    };
+
+    const handleConfirmDislike = () => {
+        if (!pendingReasonCode) {
+            toast({
+                title: 'Выберите причину',
+                description: 'Пожалуйста, укажите, почему ответ не помог.',
+                variant: 'destructive',
             });
             return;
         }
-
-        if (data) {
-            toast({
-                title: 'Спасибо за ваш отзыв!',
-                description: `Новый уровень доверия: ${data.trust_level}`,
-            });
-        } else {
-            toast({
-                title: 'Спасибо!',
-                description: 'Кейс перемещён в модерацию.',
-            });
+        const reason = DISLIKE_REASONS.find(r => r.code === pendingReasonCode);
+        if (reason) {
+            handleVote(-2, reason.code, reason.label);
         }
     };
+
 
     const formatResponseTime = (time?: number) => {
         if (!time) return '';
@@ -154,7 +201,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                                 size="icon"
                                 className={cn("h-6 w-6", voteSent === 1 && "text-green-500")}
                                 onClick={() => handleVote(1)}
-                                disabled={voteSent !== null}
+                                disabled={voteSent !== null || isSubmitting}
                             >
                                 <ThumbsUp className="h-4 w-4" />
                             </Button>
@@ -170,7 +217,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                                 size="icon"
                                 className={cn("h-6 w-6", voteSent === -0.5 && "text-yellow-500")}
                                 onClick={() => handleVote(-0.5)}
-                                disabled={voteSent !== null}
+                                disabled={voteSent !== null || isSubmitting}
                             >
                                 <Meh className="h-4 w-4" />
                             </Button>
@@ -179,22 +226,46 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                             <p>Норм</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
-                                onClick={() => handleVote(-2)}
-                                disabled={voteSent !== null}
-                            >
-                                <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Не помогло</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <Popover open={isDislikePopoverOpen} onOpenChange={setDislikePopoverOpen}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
+                                        onClick={handleDislikeClick}
+                                        disabled={voteSent !== null || isSubmitting}
+                                        aria-busy={isSubmitting}
+                                    >
+                                        <ThumbsDown className="h-4 w-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Не помогло</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <PopoverContent className="w-60" side="top" align="center">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Почему ответ не помог?</h4>
+                                </div>
+                                <RadioGroup value={pendingReasonCode ?? ""} onValueChange={setPendingReasonCode}>
+                                    {DISLIKE_REASONS.map((reason) => (
+                                        <div key={reason.code} className="flex items-center space-x-2">
+                                            <RadioGroupItem value={reason.code} id={reason.code} />
+                                            <Label htmlFor={reason.code}>{reason.label}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                                <Button onClick={handleConfirmDislike} disabled={!pendingReasonCode || isSubmitting}>
+                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Отправить
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -222,14 +293,32 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     }
 
     let displayContent: any;
-    if (typeof content === 'string') {
+    let actualContent = content; // This will hold the object with `case`, `text`, `source`
+
+    if (React.isValidElement(content)) {
         displayContent = content;
+        actualContent = null; // Can't get content details from a React element
+    } else if (typeof content === 'string') {
+        displayContent = content;
+        actualContent = null;
     } else if (content && typeof content === 'object') {
-        displayContent = content.output || content.text;
-    } else if (React.isValidElement(content)) {
-        displayContent = content;
+        // This is the main change to handle the new structure
+        if (content.text && typeof content.text === 'object') {
+             actualContent = content.text;
+             displayContent = actualContent.text;
+        } else if (typeof content.text === 'string') {
+            actualContent = content;
+            displayContent = content.text;
+        } else if (typeof content.output === 'string') {
+            actualContent = content;
+            displayContent = content.output;
+        } else {
+            displayContent = <pre className="text-xs"><code>{JSON.stringify(content, null, 2)}</code></pre>;
+            actualContent = null;
+        }
     } else {
-        displayContent = JSON.stringify(content);
+        displayContent = "Сообщение не распознано.";
+        actualContent = null;
     }
     
     const feedbackBlacklist = [
@@ -238,16 +327,21 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     ];
     
     let showFeedback = true;
-    const contentString = (typeof displayContent === 'string') ? displayContent : displayContent?.props?.children;
+    let contentString = '';
+    if (typeof displayContent === 'string') {
+        contentString = displayContent;
+    } else if (React.isValidElement(displayContent) && typeof displayContent.props.children === 'string') {
+        contentString = displayContent.props.children;
+    }
 
-    if (!contentString || (typeof contentString === 'string' && (feedbackBlacklist.some(phrase => contentString.includes(phrase))))) {
+    if (!actualContent || !contentString || (feedbackBlacklist.some(phrase => contentString.includes(phrase)))) {
         showFeedback = false;
     }
 
     return (
         <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
-            {showFeedback && <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={content} currentUser={currentUser} />}
+            {showFeedback && <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={actualContent} currentUser={currentUser} />}
         </div>
     );
 }
@@ -335,22 +429,19 @@ export default function ChatUI() {
       const responseTime = endTime - startTime;
 
       let botContent: any;
-      let logs: string[] | undefined;
       
       if (result?.response) {
         try {
             const parsedResponse = JSON.parse(result.response);
-            botContent = parsedResponse[0];
+            botContent = {text: parsedResponse[0], logs: result.logs};
         } catch (e) {
             botContent = { text: result.response, logs: result.logs };
         }
-        logs = result.logs;
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
-        botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
-        logs = result.logs;
+        botContent = { text: <span className="text-destructive">Ошибка: {errorString}</span>, logs: result.logs };
       } else {
-        botContent = <span className="text-destructive">Произошла неизвестная ошибка.</span>;
+        botContent = { text: <span className="text-destructive">Произошла неизвестная ошибка.</span> };
       }
       
       const botMessage: Message = {
@@ -395,7 +486,7 @@ export default function ChatUI() {
         <Card className="w-full h-full flex flex-col shadow-2xl bg-card rounded-lg">
         <CardHeader className="border-b p-3">
           <div className="flex w-full items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-24">
               <Button
                 variant="ghost"
                 size="sm"
@@ -407,7 +498,7 @@ export default function ChatUI() {
                 Новый чат
               </Button>
             </div>
-            <CardTitle className="font-headline text-xl">
+            <CardTitle className="font-headline text-xl text-center flex-1">
               ИИ Ментор
             </CardTitle>
             <div className="w-24"></div>
@@ -415,7 +506,7 @@ export default function ChatUI() {
         </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-4">
                 <ScrollArea className="h-full">
-                <div className="space-y-4 pr-4">
+                <div className="space-y-2 pr-4">
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
@@ -457,7 +548,7 @@ export default function ChatUI() {
                                     <BotMessage 
                                         content={message.content} 
                                         typing={message.typing} 
-                                        onOpenFeedback={() => openFeedbackModal(message.content)}
+                                        onOpenFeedback={() => openFeedbackModal(message.content.text)}
                                         responseTime={message.responseTime}
                                         currentUser={currentUser}
                                     />
@@ -556,3 +647,4 @@ export default function ChatUI() {
   );
 }
 
+    
