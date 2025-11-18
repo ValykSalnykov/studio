@@ -122,7 +122,8 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         
         setIsSubmitting(true);
         
-        const supabaseUserId = await getSupabaseUserId(currentUser.uid);
+        // const supabaseUserId = await getSupabaseUserId(currentUser.uid);
+        const supabaseUserId = '123e4567-e89b-12d3-a456-426614174000'; // TEST
 
         if (!supabaseUserId) {
             toast({
@@ -331,12 +332,22 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
         displayContent = content;
         actualContent = null;
     } else if (content && typeof content === 'object') {
-        if (content.text && typeof content.text === 'object') {
-             actualContent = content.text;
+        let textObject = content.text; // Use let to allow reassignment
+        if(typeof textObject === 'string') {
+            try {
+                // If content.text is a JSON string, parse it.
+                textObject = JSON.parse(textObject);
+            } catch (e) {
+                // Not a JSON string, treat as regular text
+            }
+        }
+
+        if (textObject && typeof textObject === 'object') {
+             actualContent = textObject;
              displayContent = actualContent.text;
-        } else if (typeof content.text === 'string') {
+        } else if (typeof textObject === 'string') {
             actualContent = content;
-            displayContent = content.text;
+            displayContent = textObject;
         } else if (typeof content.output === 'string') {
             actualContent = content;
             displayContent = content.output;
