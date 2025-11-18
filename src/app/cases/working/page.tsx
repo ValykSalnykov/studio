@@ -27,15 +27,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-interface TelegramCheckItem {
+interface CheckCaseItem {
   id: number;
   content: string | null;
 }
@@ -64,9 +57,9 @@ function parseContent(content: string | null): ParsedContent {
   return { theme, question, answer };
 }
 
-export default function RabochiePage() {
-  const [data, setData] = useState<TelegramCheckItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<TelegramCheckItem | null>(null);
+export default function WorkingCasesPage() {
+  const [data, setData] = useState<CheckCaseItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<CheckCaseItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -78,21 +71,13 @@ export default function RabochiePage() {
   const [caseAnalysis, setCaseAnalysis] = useState({
     case_source: 'Telegram',
     case_number: 'TG-12345',
-    user_conversation_summary: 'Пользователь не может найти кнопку для скачивания отчета.',
+    initial_user_request: 'Пользователь не может найти кнопку для скачивания отчета.',
     user_conclusions: 'Пользователь считает, что интерфейс неудобный и кнопка должна быть более заметной.',
   });
 
-  const [expertAnswer, setExpertAnswer] = useState({
-      text_description: 'Для решения проблемы пользователя необходимо объяснить ему, что кнопка находится в правом верхнем углу экрана под иконкой "Экспорт".',
-      solution_steps: '1. Откройте нужный отчет.\n2. Посмотрите в правый верхний угол.\n3. Нажмите на иконку "Экспорт".',
-      code_type: 'JSON',
-      code: '{\n  "action": "downloadReport",\n  "button_location": "top-right"\n}',
-      important_notes: 'Убедитесь, что у пользователя есть права на экспорт отчетов.\nЭтот функционал доступен только в Pro-версии.',
-  });
-
   useEffect(() => {
-    async function getTelegramCheckData() {
-      const { data, error } = await supabase.from('telegramcheck').select('id, content');
+    async function getCheckCasesData() {
+      const { data, error } = await supabase.from('checkcases').select('id, content');
       if (error) {
         console.error('Error fetching data from Supabase:', error);
         setData([]);
@@ -100,12 +85,12 @@ export default function RabochiePage() {
         setData(data || []);
       }
     }
-    getTelegramCheckData();
+    getCheckCasesData();
   }, []);
 
   const parsedSelectedItem = useMemo(() => selectedItem ? parseContent(selectedItem.content) : null, [selectedItem]);
 
-  const handleCardClick = (item: TelegramCheckItem) => {
+  const handleCardClick = (item: CheckCaseItem) => {
     setSelectedItem(item);
     setIsModalOpen(true);
     setIsEditMode(false);
@@ -125,7 +110,7 @@ export default function RabochiePage() {
 
     const newContent = `Тема: ${editedTheme}; Вопрос: ${editedQuestion}; Ответ: ${editedAnswer}`;
     const { data: updatedData, error } = await supabase
-      .from('telegramcheck')
+      .from('checkcases')
       .update({ content: newContent })
       .eq('id', selectedItem.id)
       .select();
@@ -141,7 +126,7 @@ export default function RabochiePage() {
     }
   };
   
-  const handleStatusChange = (status: 'ok' | 'not_ok' | 'pending') => {
+  const handleStatusChange = (status: 'ok' | 'not_ok' | 'pending' | 'think') => {
     if (!selectedItem) return;
     setIsModalOpen(false);
 
@@ -149,7 +134,7 @@ export default function RabochiePage() {
       case 'ok':
         toast({
           title: "Действие: ОК",
-          description: "Кейс будет удален из таблицы `telegramcheck`.",
+          description: "Кейс будет удален из таблицы `checkcases`.",
         });
         break;
       case 'not_ok':
@@ -162,6 +147,12 @@ export default function RabochiePage() {
         toast({
           title: "Действие: Отложить",
           description: "Кейс будет перемещен в таблицу `pendingcheck`.",
+        });
+        break;
+      case 'think':
+        toast({
+          title: "Действие: Подумать",
+          description: "Кейс будет перемещен в таблицу `thinkingcheck`.",
         });
         break;
     }
@@ -255,49 +246,12 @@ export default function RabochiePage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <Label htmlFor="user_conversation_summary">Краткое содержание</Label>
-                                        <Textarea id="user_conversation_summary" value={caseAnalysis.user_conversation_summary} onChange={e => setCaseAnalysis({...caseAnalysis, user_conversation_summary: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
+                                        <Label htmlFor="initial_user_request">Изначальный запрос пользователя</Label>
+                                        <Textarea id="initial_user_request" value={caseAnalysis.initial_user_request} onChange={e => setCaseAnalysis({...caseAnalysis, initial_user_request: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
                                     </div>
                                     <div>
                                         <Label htmlFor="user_conclusions">Выводы пользователя</Label>
                                         <Textarea id="user_conclusions" value={caseAnalysis.user_conclusions} onChange={e => setCaseAnalysis({...caseAnalysis, user_conclusions: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" />
-                                    </div>
-                                </div>
-
-                                {/* ANSWER_FOR_EXPERT */}
-                                <div className="space-y-4 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
-                                    <h4 className="font-semibold text-lg text-white">Ответ для эксперта</h4>
-                                    <div>
-                                        <Label htmlFor="text_description">Текстовое описание</Label>
-                                        <Textarea id="text_description" value={expertAnswer.text_description} onChange={e => setExpertAnswer({...expertAnswer, text_description: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={4}/>
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="solution_steps">Шаги решения (каждый с новой строки)</Label>
-                                        <Textarea id="solution_steps" value={expertAnswer.solution_steps} onChange={e => setExpertAnswer({...expertAnswer, solution_steps: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={4}/>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label htmlFor="code_type">Тип кода</Label>
-                                            <Select value={expertAnswer.code_type} onValueChange={value => setExpertAnswer({...expertAnswer, code_type: value})}>
-                                                <SelectTrigger id="code_type" className="mt-1 bg-gray-700 border-gray-600">
-                                                    <SelectValue placeholder="Выберите тип" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="JSON">JSON</SelectItem>
-                                                    <SelectItem value="SQL">SQL</SelectItem>
-                                                    <SelectItem value="Log">Log</SelectItem>
-                                                    <SelectItem value="XML">XML</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="code">Пример кода или лога</Label>
-                                        <Textarea id="code" value={expertAnswer.code} onChange={e => setExpertAnswer({...expertAnswer, code: e.target.value})} className="mt-1 bg-gray-700 border-gray-600 font-mono" rows={6}/>
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="important_notes">Важные примечания (каждое с новой строки)</Label>
-                                        <Textarea id="important_notes" value={expertAnswer.important_notes} onChange={e => setExpertAnswer({...expertAnswer, important_notes: e.target.value})} className="mt-1 bg-gray-700 border-gray-600" rows={3}/>
                                     </div>
                                 </div>
                             </div>
@@ -321,6 +275,7 @@ export default function RabochiePage() {
                         <Button onClick={() => handleStatusChange('ok')} className="bg-green-600 hover:bg-green-700 text-white">ОК</Button>
                         <Button onClick={() => handleStatusChange('not_ok')} className="bg-red-600 hover:bg-red-700 text-white">не ОК</Button>
                         <Button onClick={() => handleStatusChange('pending')} className="bg-yellow-500 hover:bg-yellow-600 text-white">Отложить</Button>
+                        <Button onClick={() => handleStatusChange('think')} className="bg-blue-500 hover:bg-blue-600 text-white">Подумать</Button>
                     </div>
                 </div>
               )}

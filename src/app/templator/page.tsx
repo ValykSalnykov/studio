@@ -1,12 +1,12 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, Copy } from 'lucide-react';
+import { Send, Bot, User, Loader2, ChevronDown, ChevronRight, Plus, MessageSquareText, Copy, X } from 'lucide-react';
 import { sendTemplatorMessage } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/collapsible';
 import { onAuthStateChange } from '@/lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
 type Message = {
@@ -125,6 +125,9 @@ export default function TemplatorPage() {
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+  const [templateCode, setTemplateCode] = useState('');
+  const [modalCode, setModalCode] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -145,6 +148,17 @@ export default function TemplatorPage() {
     scrollToBottom();
   }, [messages]);
 
+  const handleSaveCode = () => {
+    setTemplateCode(modalCode);
+    setIsCodeModalOpen(false);
+  };
+
+  const handleDeleteCode = () => {
+    setTemplateCode('');
+    setModalCode('');
+    setIsCodeModalOpen(false);
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -159,7 +173,12 @@ export default function TemplatorPage() {
     setMessages(prev => [...prev, userMessage]);
 
     const formData = new FormData();
-    formData.append('message', `Imagine that you are a C# developer. Generate a Razor template for a check based on the following request: ${trimmedInput}`);
+    let prompt = `Imagine that you are a C# developer. Generate a Razor template for a check based on the following request: ${trimmedInput}`;
+    if (templateCode) {
+        prompt = `Here is the Razor template to use as a base:\n\n${templateCode}\n\nNow, generate a check based on the following request: ${trimmedInput}`
+    }
+
+    formData.append('message', prompt);
     formData.append('sessionId', currentUser.uid);
 
     startTransition(async () => {
@@ -193,7 +212,7 @@ export default function TemplatorPage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto relative">
-        <Card className="w-full h-[85vh] md:h-[75vh] flex flex-col shadow-2xl bg-card">
+        <Card className="w-full h-[85vh] md:h-[80vh] flex flex-col shadow-2xl bg-card">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-center text-2xl">Шаблонизатор</CardTitle>
             </CardHeader>
@@ -260,10 +279,20 @@ export default function TemplatorPage() {
             </CardContent>
             <CardFooter className="border-t pt-6">
                 <div className="w-full">
+                    {templateCode && (
+                        <div className="mb-2 text-center">
+                            <Button variant="secondary" onClick={() => { setModalCode(templateCode); setIsCodeModalOpen(true); }} className="bg-gray-700 hover:bg-gray-600 text-white">
+                                Код шаблона
+                            </Button>
+                        </div>
+                    )}
                     <form
                     onSubmit={handleSubmit}
                     className="w-full flex items-center gap-3"
                     >
+                    <Button type="button" size="icon" variant="outline" onClick={() => { setModalCode(templateCode); setIsCodeModalOpen(true); }} disabled={!currentUser}>
+                        <Plus className="h-4 w-4" />
+                    </Button>
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -281,6 +310,31 @@ export default function TemplatorPage() {
                 </div>
             </CardFooter>
         </Card>
+
+        <Dialog open={isCodeModalOpen} onOpenChange={setIsCodeModalOpen}>
+            <DialogContent className="bg-gray-900 border-gray-700 text-white sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Код шаблона</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <Textarea 
+                        value={modalCode} 
+                        onChange={e => setModalCode(e.target.value)} 
+                        placeholder="Введите код шаблона Razor..." 
+                        rows={15} 
+                        className="bg-gray-800 border-gray-600 text-white font-mono"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="destructive" onClick={handleDeleteCode} className={!templateCode ? 'hidden' : ''}>Удалить</Button>
+                    <div className="flex-grow" />
+                    <DialogClose asChild>
+                        <Button variant="outline" className="text-gray-200">Отменить</Button>
+                    </DialogClose>
+                    <Button onClick={handleSaveCode} className="bg-blue-600 hover:bg-blue-700 text-white">Сохранить</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

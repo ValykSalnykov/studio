@@ -20,6 +20,7 @@ const navigationConfig: Record<string, { href?: string; icon?: React.ElementType
   'Cases': {
     icon: FolderKanban,
     subLinks: [
+        { href: '/cases/unprocessed', label: 'Необработанные' },
         { href: '/cases/working', label: 'Робочі кейси' },
         { href: '/cases/complex', label: 'Складні кейси' },
         { href: '/cases/pending', label: 'Отложенные' },
@@ -89,7 +90,7 @@ export function Navigation() {
           <div className="w-1/2 flex justify-center items-center space-x-2 text-sm">
             {mainLinks.map((label) => {
               const linkConfig = navigationConfig[label];
-              const commonClasses = 'flex items-center space-x-1 px-2 py-1 rounded-md transition-colors duration-200';
+              const commonClasses = 'flex items-center justify-center space-x-2 px-3 py-2 rounded-md transition-colors duration-200 text-center';
               const activeClasses = 'bg-black/25 text-amber-400 shadow-inner';
               const inactiveClasses = 'hover:bg-black/20 text-white/90';
 
@@ -100,11 +101,11 @@ export function Navigation() {
                     href={linkConfig.href || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(commonClasses, inactiveClasses)}
+                    className={cn(commonClasses, inactiveClasses, 'relative')}
                   >
                     {linkConfig.icon && <linkConfig.icon size={14} />}
                     <span>{label}</span>
-                    <ExternalLink size={10} className="opacity-70" />
+                    <ExternalLink size={10} className="absolute top-1 right-1 opacity-70" />
                   </a>
                 )
               }

@@ -21,6 +21,9 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FeedbackModal } from './feedback-modal';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
 
 interface Case {
@@ -60,20 +63,74 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
   );
 }
 
-function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () => void, responseTime?: number }) {
-    const [feedback, setFeedback] = useState<string | null>(null);
+function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
+    const { toast } = useToast();
+    const [voteSent, setVoteSent] = useState<number | null>(null);
 
-    const handleFeedbackClick = (type: string) => {
-        if (type === 'detailed') {
-            onOpenFeedback();
-            setFeedback('detailed');
-        } else {
-            setFeedback(type);
+    const handleVote = async (vote: number) => {
+        if (voteSent !== null) {
+            return;
         }
-    };
 
-    const isButtonDisabled = (type: string) => {
-        return feedback !== null && feedback !== type;
+        if (!content || !content.source || !content.case) {
+            toast({
+                title: 'Ошибка',
+                description: 'Недостаточно данных для отправки отзыва.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const tableName = content.source; 
+
+        const payload = {
+            target_table: tableName,
+            target_id: content.case,
+            user_id: null, 
+            vote: vote,
+        };
+
+        setVoteSent(vote);
+
+        const { error } = await supabase.from('feedback_votes').upsert(payload, {
+            onConflict: 'target_table, target_id, user_id'
+        });
+
+        if (error) {
+            toast({
+                title: 'Ошибка',
+                description: `Не удалось отправить отзыв: ${error.message}`,
+                variant: 'destructive',
+            });
+            setVoteSent(null);
+            return;
+        }
+
+        const { data, error: selectError } = await supabase
+            .from(tableName)
+            .select('trust_level')
+            .eq('id', payload.target_id)
+            .maybeSingle();
+
+        if (selectError) {
+             toast({
+                title: 'Спасибо за ваш отзыв!',
+                description: `Не удалось получить обновленный статус кейса: ${selectError.message}`,
+            });
+            return;
+        }
+
+        if (data) {
+            toast({
+                title: 'Спасибо за ваш отзыв!',
+                description: `Новый уровень доверия: ${data.trust_level}`,
+            });
+        } else {
+            toast({
+                title: 'Спасибо!',
+                description: 'Кейс перемещён в модерацию.',
+            });
+        }
     };
 
     const formatResponseTime = (time?: number) => {
@@ -95,9 +152,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'like' && "text-green-500")}
-                                onClick={() => handleFeedbackClick('like')}
-                                disabled={isButtonDisabled('like')}
+                                className={cn("h-6 w-6", voteSent === 1 && "text-green-500")}
+                                onClick={() => handleVote(1)}
+                                disabled={voteSent !== null}
                             >
                                 <ThumbsUp className="h-4 w-4" />
                             </Button>
@@ -111,9 +168,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'ok' && "text-yellow-500")}
-                                onClick={() => handleFeedbackClick('ok')}
-                                disabled={isButtonDisabled('ok')}
+                                className={cn("h-6 w-6", voteSent === -0.5 && "text-yellow-500")}
+                                onClick={() => handleVote(-0.5)}
+                                disabled={voteSent !== null}
                             >
                                 <Meh className="h-4 w-4" />
                             </Button>
@@ -127,9 +184,9 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'dislike' && "text-red-500")}
-                                onClick={() => handleFeedbackClick('dislike')}
-                                disabled={isButtonDisabled('dislike')}
+                                className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
+                                onClick={() => handleVote(-2)}
+                                disabled={voteSent !== null}
                             >
                                 <ThumbsDown className="h-4 w-4" />
                             </Button>
@@ -143,9 +200,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className={cn("h-6 w-6", feedback === 'detailed' && "text-blue-500")}
-                                onClick={() => handleFeedbackClick('detailed')}
-                                disabled={isButtonDisabled('detailed')}
+                                onClick={onOpenFeedback}
                             >
                                 <MessageSquareText className="h-4 w-4" />
                             </Button>
@@ -161,27 +216,38 @@ function FeedbackIcons({ onOpenFeedback, responseTime }: { onOpenFeedback: () =>
     );
 }
 
-function BotMessage({ content, typing, onOpenFeedback, responseTime }: { content: any, typing?: boolean, onOpenFeedback: () => void, responseTime?: number }) {
+function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser }: { content: any, typing?: boolean, onOpenFeedback: () => void, responseTime?: number, currentUser: FirebaseUser | null }) {
     if (typing) {
         return <TypingIndicator />;
     }
 
-    let displayContent;
-    let logs;
+    let displayContent: any;
     if (typeof content === 'string') {
         displayContent = content;
     } else if (content && typeof content === 'object') {
-        displayContent = content.text || content.output;
-        logs = content.logs;
+        displayContent = content.output || content.text;
+    } else if (React.isValidElement(content)) {
+        displayContent = content;
     } else {
         displayContent = JSON.stringify(content);
     }
     
+    const feedbackBlacklist = [
+        "Отправляем на проверку",
+        "Ошибка при ответе ИИ"
+    ];
+    
+    let showFeedback = true;
+    const contentString = (typeof displayContent === 'string') ? displayContent : displayContent?.props?.children;
+
+    if (!contentString || (typeof contentString === 'string' && (feedbackBlacklist.some(phrase => contentString.includes(phrase))))) {
+        showFeedback = false;
+    }
+
     return (
         <div>
             <div className="text-sm break-words whitespace-pre-wrap">{displayContent}</div>
-            {logs && logs.length > 0 && <LogMessage logs={logs} />}
-            <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} />
+            {showFeedback && <FeedbackIcons onOpenFeedback={onOpenFeedback} responseTime={responseTime} content={content} currentUser={currentUser} />}
         </div>
     );
 }
@@ -269,7 +335,7 @@ export default function ChatUI() {
       const responseTime = endTime - startTime;
 
       let botContent: any;
-      let logs;
+      let logs: string[] | undefined;
       
       if (result?.response) {
         try {
@@ -278,9 +344,11 @@ export default function ChatUI() {
         } catch (e) {
             botContent = { text: result.response, logs: result.logs };
         }
+        logs = result.logs;
       } else if (result?.error) {
         const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
-        botContent = { text: <span className="text-destructive">Ошибка: {errorString}</span>, logs: result.logs };
+        botContent = <span className="text-destructive">Ошибка: {errorString}</span>;
+        logs = result.logs;
       } else {
         botContent = <span className="text-destructive">Произошла неизвестная ошибка.</span>;
       }
@@ -324,10 +392,10 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-full flex flex-col shadow-none bg-card">
-        <CardHeader className="border-b p-2">
+        <Card className="w-full h-full flex flex-col shadow-2xl bg-card rounded-lg">
+        <CardHeader className="border-b p-3">
           <div className="flex w-full items-center justify-between gap-4">
-            <div className="flex-1 flex items-center">
+            <div className="flex flex-col gap-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -339,15 +407,15 @@ export default function ChatUI() {
                 Новый чат
               </Button>
             </div>
-            <CardTitle className="font-headline text-2xl text-center flex-1">
+            <CardTitle className="font-headline text-xl">
               ИИ Ментор
             </CardTitle>
-            <div className="flex-1"></div>
+            <div className="w-24"></div>
           </div>
         </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-2 md:p-4">
+            <CardContent className="flex-1 overflow-hidden p-4">
                 <ScrollArea className="h-full">
-                <div className="space-y-4 pr-2">
+                <div className="space-y-4 pr-4">
                     {!currentUser ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                             <Bot className="h-12 w-12 text-muted-foreground"/>
@@ -391,6 +459,7 @@ export default function ChatUI() {
                                         typing={message.typing} 
                                         onOpenFeedback={() => openFeedbackModal(message.content)}
                                         responseTime={message.responseTime}
+                                        currentUser={currentUser}
                                     />
                                 ) : (
                                     <div className="text-sm break-words">{message.content}</div>
@@ -411,7 +480,7 @@ export default function ChatUI() {
                 </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter className="border-t py-[5px]">
+            <CardFooter className="border-t pt-3 pb-3">
                 <div className="w-full">
                     <div className="flex items-center gap-3 mb-2">
                          <span className="text-sm font-medium text-muted-foreground">Источник:</span>
@@ -451,7 +520,7 @@ export default function ChatUI() {
                     </div>
                     <form
                     onSubmit={handleSubmit}
-                    className="w-full flex items-center gap-3"
+                    className="flex items-center gap-3"
                     >
                         <Popover>
                             <PopoverTrigger asChild>
