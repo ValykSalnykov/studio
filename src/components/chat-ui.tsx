@@ -74,6 +74,21 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
   );
 }
 
+async function getSupabaseUserId(firebaseUid: string): Promise<string | null> {
+    const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('raw_user_meta_data->>sub', firebaseUid)
+        .single();
+    
+    if (error || !data) {
+        console.error('Error fetching supabase user id:', error);
+        return null;
+    }
+    return data.id;
+}
+
+
 function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
     const { toast } = useToast();
     const [voteSent, setVoteSent] = useState<number | null>(null);
@@ -104,13 +119,29 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             });
             return;
         }
+        
+        setIsSubmitting(true);
+        
+        const supabaseUserId = await getSupabaseUserId(currentUser.uid);
+
+        if (!supabaseUserId) {
+            toast({
+                title: 'Ошибка',
+                description: 'Не удалось получить идентификатор пользователя для отправки отзыва.',
+                variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            setDislikePopoverOpen(false);
+            return;
+        }
+
 
         const tableName = content.source;
 
         const payload: any = {
             target_table: tableName,
             target_id: content.case,
-            user_id: currentUser.uid,
+            user_id: supabaseUserId,
             vote: vote,
         };
         
@@ -125,8 +156,6 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             source: content.source,
         });
         
-        setIsSubmitting(true);
-
         const { error } = await supabase.from('feedback_votes').upsert(payload, {
             onConflict: 'target_table, target_id, user_id'
         });
@@ -293,16 +322,15 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     }
 
     let displayContent: any;
-    let actualContent = content; // This will hold the object with `case`, `text`, `source`
+    let actualContent = content;
 
     if (React.isValidElement(content)) {
         displayContent = content;
-        actualContent = null; // Can't get content details from a React element
+        actualContent = null; 
     } else if (typeof content === 'string') {
         displayContent = content;
         actualContent = null;
     } else if (content && typeof content === 'object') {
-        // This is the main change to handle the new structure
         if (content.text && typeof content.text === 'object') {
              actualContent = content.text;
              displayContent = actualContent.text;
@@ -334,7 +362,7 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
         contentString = displayContent.props.children;
     }
 
-    if (!actualContent || !contentString || (feedbackBlacklist.some(phrase => contentString.includes(phrase)))) {
+    if (!actualContent || !contentString.trim() || (feedbackBlacklist.some(phrase => contentString.includes(phrase)))) {
         showFeedback = false;
     }
 
