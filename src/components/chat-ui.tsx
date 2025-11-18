@@ -136,8 +136,23 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             return;
         }
 
-
-        const tableName = content.source;
+        const tableMap: Record<string, string> = {
+            site: 'site',
+            bz: 'knowledge',
+            telegram: 'telegram',
+            telegrambad: 'telegrambad',
+        };
+        const tableName = tableMap[(content.source || '').toLowerCase()];
+        if (!tableName) {
+            toast({
+                title: 'Ошибка',
+                description: 'Неизвестный источник для отзыва.',
+                variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            setDislikePopoverOpen(false);
+            return;
+        }
 
         const payload: any = {
             target_table: tableName,
@@ -154,7 +169,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         console.debug("Отправка отзыва:", {
             code: reasonCode,
             case: content.case,
-            source: content.source,
+            source: tableName,
         });
         
         const { error } = await supabase.from('feedback_votes').upsert(payload, {
@@ -342,7 +357,7 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
             }
         }
 
-        if (textObject && typeof textObject === 'object') {
+        if (textObject && typeof textObject === 'object' && textObject.text) {
              actualContent = textObject;
              displayContent = actualContent.text;
         } else if (typeof textObject === 'string') {
@@ -472,7 +487,27 @@ export default function ChatUI() {
       if (result?.response) {
         try {
             const parsedResponse = JSON.parse(result.response);
-            botContent = {text: parsedResponse[0], logs: result.logs};
+            const responseData = parsedResponse[0];
+            botContent = {text: responseData, logs: result.logs};
+
+            const tableMap: Record<string, string> = {
+                site: 'site',
+                bz: 'knowledge',
+                telegram: 'telegram',
+                telegrambad: 'telegrambad',
+            };
+            const tableName = tableMap[(responseData.source || '').toLowerCase()];
+
+            if (tableName && responseData.case) {
+                const { error } = await supabase.rpc('increment_received_count_single', {
+                    target_table: tableName,
+                    id: responseData.case,
+                });
+                if (error) {
+                    console.error('Error incrementing received_count:', error);
+                }
+            }
+
         } catch (e) {
             botContent = { text: result.response, logs: result.logs };
         }
@@ -514,7 +549,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative p-5">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
@@ -685,5 +720,7 @@ export default function ChatUI() {
     </div>
   );
 }
+
+    
 
     
