@@ -19,7 +19,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { FeedbackModal } from './feedback-modal';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from '@/lib/supabase';
@@ -90,7 +89,7 @@ async function getSupabaseUserId(firebaseUid: string): Promise<string | null> {
 function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
     const { toast } = useToast();
     const [voteSent, setVoteSent] = useState<number | null>(null);
-    const [isDislikeDialogOpen, setDislikeDialogOpen] = useState(false);
+    const [isDislikePopoverOpen, setDislikePopoverOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -128,7 +127,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setIsSubmitting(false);
-            setDislikeDialogOpen(false);
+            setDislikePopoverOpen(false);
             return;
         }
 
@@ -146,7 +145,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setIsSubmitting(false);
-            setDislikeDialogOpen(false);
+            setDislikePopoverOpen(false);
             return;
         }
 
@@ -179,23 +178,21 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setVoteSent(null);
-            setDislikeDialogOpen(false);
-            return;
-        }
-        setVoteSent(vote);
-
-        if (vote === -1) {
-             toast({
-                title: 'Спасибо за ваш отзыв!',
-                description: `Отзыв сохранён: ${reasonLabel}`,
-            });
         } else {
-             toast({
-                title: 'Спасибо за ваш отзыв!',
-                description: 'Ваш голос учтён.',
-            });
+            setVoteSent(vote);
+            if (vote === -1) {
+                 toast({
+                    title: 'Спасибо за ваш отзыв!',
+                    description: `Отзыв сохранён: ${reasonLabel}`,
+                });
+            } else {
+                 toast({
+                    title: 'Спасибо за ваш отзыв!',
+                    description: 'Ваш голос учтён.',
+                });
+            }
         }
-        setDislikeDialogOpen(false);
+        setDislikePopoverOpen(false);
     };
 
     const handleDislikeReasonClick = (reason: { code: string; label: string }) => {
@@ -215,6 +212,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
 
     return (
         <TooltipProvider>
+             {isDislikePopoverOpen && <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" />}
             <div className="flex items-center justify-between mt-2 pt-2 border-t">
                 <div className="flex items-center gap-2">
                     <Tooltip>
@@ -249,10 +247,10 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                             <p>Норм</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Dialog open={isDislikeDialogOpen} onOpenChange={setDislikeDialogOpen}>
+                    <Popover open={isDislikePopoverOpen} onOpenChange={setDislikePopoverOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <DialogTrigger asChild>
+                                <PopoverTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -262,25 +260,25 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                                     >
                                         <ThumbsDown className="h-4 w-4" />
                                     </Button>
-                                </DialogTrigger>
+                                </PopoverTrigger>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Не помогло</p>
                             </TooltipContent>
                         </Tooltip>
-                        <DialogContent className="sm:max-w-md bg-gray-900/90 backdrop-blur-sm border-gray-700">
-                            <DialogHeader>
-                                <DialogTitle>Почему ответ не помог?</DialogTitle>
-                                <DialogDescription>
+                        <PopoverContent className="w-80 z-50 bg-gray-900/90 backdrop-blur-sm border-gray-700 text-white">
+                             <div className="space-y-2">
+                                <h4 className="font-medium leading-none">Почему ответ не помог?</h4>
+                                <p className="text-sm text-muted-foreground">
                                     Ваш отзыв поможет нам стать лучше.
-                                </DialogDescription>
-                            </DialogHeader>
+                                </p>
+                            </div>
                             <div className="grid grid-cols-2 gap-2 py-4">
                                 {DISLIKE_REASONS.map((reason) => (
                                     <Button
                                         key={reason.code}
                                         variant="outline"
-                                        className="h-auto justify-center text-center whitespace-normal p-2 transition-all duration-200 hover:bg-red-500/20 hover:border-red-500 active:scale-95"
+                                        className="h-auto justify-center text-center whitespace-normal p-2 transition-all duration-200 bg-gray-800 border-gray-600 hover:bg-red-500/20 hover:border-red-500 active:scale-95"
                                         onClick={() => handleDislikeReasonClick(reason)}
                                         disabled={isSubmitting}
                                     >
@@ -288,8 +286,8 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                                     </Button>
                                 ))}
                             </div>
-                        </DialogContent>
-                    </Dialog>
+                        </PopoverContent>
+                    </Popover>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -329,7 +327,10 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
         let textObject = content.text;
         if(typeof textObject === 'string') {
             try {
-                textObject = JSON.parse(textObject);
+                const parsed = JSON.parse(textObject);
+                 if (parsed && typeof parsed === 'object') {
+                    textObject = parsed;
+                }
             } catch (e) {
                 // Not a JSON string
             }
@@ -680,9 +681,3 @@ export default function ChatUI() {
     </div>
   );
 }
-
-    
-
-    
-
-
