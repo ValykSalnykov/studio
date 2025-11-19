@@ -19,14 +19,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FeedbackModal } from './feedback-modal';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-
 
 interface Case {
     id: string;
@@ -92,8 +90,7 @@ async function getSupabaseUserId(firebaseUid: string): Promise<string | null> {
 function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: { onOpenFeedback: () => void, responseTime?: number, content: any, currentUser: FirebaseUser | null }) {
     const { toast } = useToast();
     const [voteSent, setVoteSent] = useState<number | null>(null);
-    const [isDislikePopoverOpen, setDislikePopoverOpen] = useState(false);
-    const [pendingReasonCode, setPendingReasonCode] = useState<string | null>(null);
+    const [isDislikeDialogOpen, setDislikeDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -122,7 +119,6 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         
         setIsSubmitting(true);
         
-        // const supabaseUserId = await getSupabaseUserId(currentUser.uid);
         const supabaseUserId = '555e4567-e89b-12d3-a456-426614174022'; // TEST
 
         if (!supabaseUserId) {
@@ -132,7 +128,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setIsSubmitting(false);
-            setDislikePopoverOpen(false);
+            setDislikeDialogOpen(false);
             return;
         }
 
@@ -150,7 +146,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setIsSubmitting(false);
-            setDislikePopoverOpen(false);
+            setDislikeDialogOpen(false);
             return;
         }
 
@@ -183,7 +179,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 variant: 'destructive',
             });
             setVoteSent(null);
-            setDislikePopoverOpen(false);
+            setDislikeDialogOpen(false);
             return;
         }
         setVoteSent(vote);
@@ -199,29 +195,13 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                 description: 'Ваш голос учтён.',
             });
         }
-        setDislikePopoverOpen(false);
-    };
-    
-    const handleDislikeClick = () => {
-        setPendingReasonCode(null);
-        setDislikePopoverOpen(true);
+        setDislikeDialogOpen(false);
     };
 
-    const handleConfirmDislike = () => {
-        if (!pendingReasonCode) {
-            toast({
-                title: 'Выберите причину',
-                description: 'Пожалуйста, укажите, почему ответ не помог.',
-                variant: 'destructive',
-            });
-            return;
-        }
-        const reason = DISLIKE_REASONS.find(r => r.code === pendingReasonCode);
-        if (reason) {
-            handleVote(-1, reason.code, reason.label);
-        }
+    const handleDislikeReasonClick = (reason: { code: string; label: string }) => {
+        if (isSubmitting) return;
+        handleVote(-1, reason.code, reason.label);
     };
-
 
     const formatResponseTime = (time?: number) => {
         if (!time) return '';
@@ -269,46 +249,47 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                             <p>Норм</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Popover open={isDislikePopoverOpen} onOpenChange={setDislikePopoverOpen}>
+                    <Dialog open={isDislikeDialogOpen} onOpenChange={setDislikeDialogOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <PopoverTrigger asChild>
+                                <Dialog.Trigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
-                                        onClick={handleDislikeClick}
                                         disabled={voteSent !== null || isSubmitting}
                                         aria-busy={isSubmitting}
                                     >
                                         <ThumbsDown className="h-4 w-4" />
                                     </Button>
-                                </PopoverTrigger>
+                                </Dialog.Trigger>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Не помогло</p>
                             </TooltipContent>
                         </Tooltip>
-                        <PopoverContent className="w-60" side="top" align="center">
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
-                                    <h4 className="font-medium leading-none">Почему ответ не помог?</h4>
-                                </div>
-                                <RadioGroup value={pendingReasonCode ?? ""} onValueChange={setPendingReasonCode}>
-                                    {DISLIKE_REASONS.map((reason) => (
-                                        <div key={reason.code} className="flex items-center space-x-2">
-                                            <RadioGroupItem value={reason.code} id={reason.code} />
-                                            <Label htmlFor={reason.code}>{reason.label}</Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                                <Button onClick={handleConfirmDislike} disabled={!pendingReasonCode || isSubmitting}>
-                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    Отправить
-                                </Button>
+                        <DialogContent className="sm:max-w-md bg-gray-900/90 backdrop-blur-sm border-gray-700">
+                            <DialogHeader>
+                                <DialogTitle>Почему ответ не помог?</DialogTitle>
+                                <DialogDescription>
+                                    Ваш отзыв поможет нам стать лучше.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-2 gap-2 py-4">
+                                {DISLIKE_REASONS.map((reason) => (
+                                    <Button
+                                        key={reason.code}
+                                        variant="outline"
+                                        className="h-auto justify-center text-center whitespace-normal p-2 transition-all duration-200 hover:bg-red-500/20 hover:border-red-500 active:scale-95"
+                                        onClick={() => handleDislikeReasonClick(reason)}
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : reason.label}
+                                    </Button>
+                                ))}
                             </div>
-                        </PopoverContent>
-                    </Popover>
+                        </DialogContent>
+                    </Dialog>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -345,13 +326,12 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
         displayContent = content;
         actualContent = null;
     } else if (content && typeof content === 'object') {
-        let textObject = content.text; // Use let to allow reassignment
+        let textObject = content.text;
         if(typeof textObject === 'string') {
             try {
-                // If content.text is a JSON string, parse it.
                 textObject = JSON.parse(textObject);
             } catch (e) {
-                // Not a JSON string, treat as regular text
+                // Not a JSON string
             }
         }
 
@@ -487,24 +467,6 @@ export default function ChatUI() {
             const parsedResponse = JSON.parse(result.response);
             const responseData = parsedResponse[0];
             botContent = {text: responseData, logs: result.logs};
-
-            const tableMap: Record<string, string> = {
-                site: 'site',
-                bz: 'knowledge',
-                telegram: 'telegram',
-                telegrambad: 'telegrambad',
-            };
-            const tableName = tableMap[(responseData.source || '').toLowerCase()];
-
-            if (tableName && responseData.case) {
-                const { error } = await supabase.rpc('increment_received_count_single', {
-                    target_table: tableName,
-                    id: responseData.case,
-                });
-                if (error) {
-                    console.error('Error incrementing received_count:', error);
-                }
-            }
 
         } catch (e) {
             botContent = { text: result.response, logs: result.logs };
@@ -722,3 +684,4 @@ export default function ChatUI() {
     
 
     
+
