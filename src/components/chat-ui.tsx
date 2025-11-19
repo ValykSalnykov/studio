@@ -218,7 +218,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         }
         const reason = DISLIKE_REASONS.find(r => r.code === pendingReasonCode);
         if (reason) {
-            handleVote(-2, reason.code, reason.label);
+            handleVote(-1, reason.code, reason.label);
         }
     };
 
