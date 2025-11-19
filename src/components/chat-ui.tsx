@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { onAuthStateChange } from '../lib/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { FeedbackModal } from './feedback-modal';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from '@/lib/supabase';
@@ -252,17 +252,17 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                     <Dialog open={isDislikeDialogOpen} onOpenChange={setDislikeDialogOpen}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Dialog.Trigger asChild>
+                                <DialogTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className={cn("h-6 w-6", voteSent === -2 && "text-red-500")}
+                                        className={cn("h-6 w-6", voteSent === -1 && "text-red-500")}
                                         disabled={voteSent !== null || isSubmitting}
                                         aria-busy={isSubmitting}
                                     >
                                         <ThumbsDown className="h-4 w-4" />
                                     </Button>
-                                </Dialog.Trigger>
+                                </DialogTrigger>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Не помогло</p>
@@ -517,7 +517,7 @@ export default function ChatUI() {
             initialCase={initialCase}
             onSubmit={(feedback) => handleSend(feedback)}
         />
-        <Card className="w-full h-full flex flex-col shadow-2xl bg-card rounded-lg">
+        <Card className="w-full h-full flex flex-col shadow-2xl bg-card rounded-none">
         <CardHeader className="border-b p-3">
           <div className="flex w-full items-center justify-between gap-4">
             <div className="flex flex-col gap-1 w-24">
@@ -684,4 +684,5 @@ export default function ChatUI() {
     
 
     
+
 
