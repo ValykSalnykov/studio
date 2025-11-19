@@ -212,7 +212,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
 
     return (
         <TooltipProvider>
-             {isDislikePopoverOpen && <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" />}
+             {isDislikePopoverOpen && <div className="fixed inset-0 z-40" />}
             <div className="flex items-center justify-between mt-2 pt-2 border-t">
                 <div className="flex items-center gap-2">
                     <Tooltip>
@@ -266,19 +266,19 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
                                 <p>Не помогло</p>
                             </TooltipContent>
                         </Tooltip>
-                        <PopoverContent className="w-80 z-50 bg-gray-900/90 backdrop-blur-sm border-gray-700 text-white">
-                             <div className="space-y-2">
-                                <h4 className="font-medium leading-none">Почему ответ не помог?</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Ваш отзыв поможет нам стать лучше.
-                                </p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 py-4">
+                        <PopoverContent 
+                            side="top" 
+                            align="center"
+                            className="w-64 z-50 bg-white/80 backdrop-blur-md border-gray-300 text-black rounded-xl p-3 shadow-lg"
+                        >
+                            <div className="grid grid-cols-2 gap-2">
                                 {DISLIKE_REASONS.map((reason) => (
                                     <Button
                                         key={reason.code}
                                         variant="outline"
-                                        className="h-auto justify-center text-center whitespace-normal p-2 transition-all duration-200 bg-gray-800 border-gray-600 hover:bg-red-500/20 hover:border-red-500 active:scale-95"
+                                        className="h-auto justify-center text-center whitespace-normal p-2 text-xs
+                                                   bg-gray-100 border-gray-300 hover:bg-red-100 hover:border-red-400 
+                                                   active:scale-95 transition-all duration-150 rounded-lg text-gray-800"
                                         onClick={() => handleDislikeReasonClick(reason)}
                                         disabled={isSubmitting}
                                     >
@@ -681,3 +681,4 @@ export default function ChatUI() {
     </div>
   );
 }
+
