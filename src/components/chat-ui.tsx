@@ -123,7 +123,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         setIsSubmitting(true);
         
         // const supabaseUserId = await getSupabaseUserId(currentUser.uid);
-        const supabaseUserId = '123e4567-e89b-12d3-a456-426614174000'; // TEST
+        const supabaseUserId = '555e4567-e89b-12d3-a456-426614174022'; // TEST
 
         if (!supabaseUserId) {
             toast({
@@ -172,9 +172,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
             source: tableName,
         });
         
-        const { error } = await supabase.from('feedback_votes').upsert(payload, {
-            onConflict: 'target_table, target_id, user_id'
-        });
+        const { error } = await supabase.from('feedback_votes').insert(payload);
 
         setIsSubmitting(false);
 
@@ -190,7 +188,7 @@ function FeedbackIcons({ onOpenFeedback, responseTime, content, currentUser }: {
         }
         setVoteSent(vote);
 
-        if (vote === -2) {
+        if (vote === -1) {
              toast({
                 title: 'Спасибо за ваш отзыв!',
                 description: `Отзыв сохранён: ${reasonLabel}`,
@@ -549,7 +547,7 @@ export default function ChatUI() {
   }
 
   return (
-    <div className="w-full h-full relative p-5">
+    <div className="w-full h-full relative">
         <FeedbackModal 
             isOpen={isFeedbackModalOpen}
             onClose={() => setFeedbackModalOpen(false)}
