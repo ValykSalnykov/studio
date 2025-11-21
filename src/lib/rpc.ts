@@ -32,11 +32,11 @@ export const api = {
     canonical_id: number | null;
     duplicates_count: number;
     has_duplicates: boolean;
-  }>>('get_telegrambad_backup_page_pairs', {
+  }>>('get_telegrambad_page_pairs', {
     p_search: args.search ?? null,
     p_archived: args.archived ?? null,
     p_with_dupes_only: !!args.withDupesOnly,
-    p_limit: Number(args.limit ?? 20),
+    p_limit: Number(args.limit ?? 50),
     p_offset: Number(args.offset ?? 0),
     p_pairs_thr: Number(args.pairsThr ?? 0.86)
   }),
@@ -45,7 +45,7 @@ export const api = {
     rpc<Array<{ // ...
       id: number; role: 'canonical' | 'self' | 'duplicate';
       archived: boolean; canonical_id: number | null; sim: number | null; content: string | null;
-    }>>('get_record_cluster_backup', { p_id: id }),
+    }>>('get_record_cluster_telegrambad', { p_id: id }),
 
   getSimilarPairs: (args: { id: number; thr?: number; limit?: number; offset?: number }) =>
     rpc<Array<{ // ...
@@ -54,7 +54,7 @@ export const api = {
       neighbor_archived: boolean;
       neighbor_canonical_id: number | null;
       neighbor_content: string | null;
-    }>>('get_record_similar_pairs_backup', {
+    }>>('get_record_similar_pairs_telegrambad', {
       p_id: args.id,
       p_thr: Number(args.thr ?? 0.86),
       p_limit: Number(args.limit ?? 50),
@@ -67,20 +67,20 @@ export const api = {
     allowArchived: boolean;
     metadataExtra: object;
     dedupeByContent: boolean;
-  }) => rpc<Array<{ id: number, telegram_id: number }>>('send_to_telegram_backup', {
+  }) => rpc<Array<{ id: number, telegram_id: number }>>('send_to_telegrambad', {
     p_id: args.id,
-    p_archive_source: args.archiveSource,
-    p_allow_archived: args.allowArchived,
-    p_metadata_extra: args.metadataExtra,
-    p_dedupe_by_content: args.dedupeByContent
+    p_archive_source: args.archiveSource ?? true,
+    p_allow_archived: args.allowArchived ?? false,
+    p_metadata_extra: args.metadataExtra ?? {},
+    p_dedupe_by_content: args.dedupeByContent ?? false
   }),
 
   setNotOk: (id: number, reason: string) =>
-    rpc('archive_backup_record', { p_id: id, p_reason: reason }),
+    rpc('archive_telegrambad_record', { p_id: id, p_reason: reason }),
 
   editRecord: (args: { id: number; newContent: string; metadataPatch: object }) =>
-    rpc('edit_backup_content', { p_id: args.id, p_new_content: args.newContent, p_metadata_patch: args.metadataPatch }),
+    rpc('edit_telegrambad_content', { p_id: args.id, p_new_content: args.newContent, p_metadata_patch: args.metadataPatch }),
 
   setCanonical: (args: { duplicateId: number, canonicalId: number }) =>
-    rpc<boolean>('set_canonical_telegrambad_backup', { p_duplicate_id: args.duplicateId, p_canonical_id: args.canonicalId })
+    rpc<boolean>('set_canonical_telegrambad', { p_duplicate_id: args.duplicateId, p_canonical_id: args.canonicalId })
 };
