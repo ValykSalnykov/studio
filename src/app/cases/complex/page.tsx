@@ -57,7 +57,7 @@ function parseContent(content: string | null): ParsedContent {
   return { theme, question, answer };
 }
 
-export default function WorkingCasesPage() {
+export default function ComplexCasesPage() {
   const [data, setData] = useState<CaseItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<CaseItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,17 +76,17 @@ export default function WorkingCasesPage() {
   });
 
   useEffect(() => {
-    async function getCheckCasesData() {
-      const { data, error } = await supabase.from('checkcases').select('id, content');
+    async function getComplexCasesData() {
+      const { data, error } = await supabase.from('complexcases').select('id, content');
       if (error) {
         console.error('Error fetching data from Supabase:', error);
-        toast({ variant: "destructive", title: "Ошибка", description: "Не удалось загрузить рабочие кейсы." });
+        toast({ variant: "destructive", title: "Ошибка", description: "Не удалось загрузить сложные кейсы." });
         setData([]);
       } else {
         setData(data || []);
       }
     }
-    getCheckCasesData();
+    getComplexCasesData();
   }, [toast]);
 
   const parsedSelectedItem = useMemo(() => selectedItem ? parseContent(selectedItem.content) : null, [selectedItem]);
@@ -111,7 +111,7 @@ export default function WorkingCasesPage() {
 
     const newContent = `Тема: ${editedTheme}; Вопрос: ${editedQuestion}; Ответ: ${editedAnswer}`;
     const { data: updatedData, error } = await supabase
-      .from('checkcases')
+      .from('complexcases')
       .update({ content: newContent })
       .eq('id', selectedItem.id)
       .select();
@@ -130,39 +130,16 @@ export default function WorkingCasesPage() {
   const handleStatusChange = (status: 'ok' | 'not_ok' | 'pending' | 'think') => {
     if (!selectedItem) return;
     setIsModalOpen(false);
-
-    switch (status) {
-      case 'ok':
-        toast({
-          title: "Действие: ОК",
-          description: "Кейс будет удален из таблицы `checkcases`.",
-        });
-        break;
-      case 'not_ok':
-        toast({
-          title: "Действие: не ОК",
-          description: "Кейс будет перемещен в таблицу `complexcases`.",
-        });
-        break;
-      case 'pending':
-        toast({
-          title: "Действие: Отложить",
-          description: "Кейс будет перемещен в таблицу `deferredcases`.",
-        });
-        break;
-      case 'think':
-        toast({
-          title: "Действие: Подумать",
-          description: "Действие в разработке.",
-        });
-        break;
-    }
+    toast({
+      title: "Действие в разработке",
+      description: `Действие "${status}" для сложных кейсов еще не реализовано.`,
+    });
   };
 
   return (
     <div className="p-4 md:p-8">
       <Toaster />
-      <h1 className="text-3xl font-bold mb-6 text-black-400 text-center">Рабочие кейсы</h1>
+      <h1 className="text-3xl font-bold mb-6 text-black-400 text-center">Сложные кейсы</h1>
       {data.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.map((item) => (

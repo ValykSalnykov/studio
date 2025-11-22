@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 
-interface CheckCaseItem {
+interface CaseItem {
   id: number;
   content: string | null;
 }
@@ -58,8 +58,8 @@ function parseContent(content: string | null): ParsedContent {
 }
 
 export default function PendingCasesPage() {
-  const [data, setData] = useState<CheckCaseItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<CheckCaseItem | null>(null);
+  const [data, setData] = useState<CaseItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<CaseItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -77,14 +77,21 @@ export default function PendingCasesPage() {
 
   useEffect(() => {
     async function getPendingCasesData() {
-      // 
+      const { data, error } = await supabase.from('deferredcases').select('id, content');
+      if (error) {
+        console.error('Error fetching data from Supabase:', error);
+        toast({ variant: "destructive", title: "Ошибка", description: "Не удалось загрузить отложенные кейсы." });
+        setData([]);
+      } else {
+        setData(data || []);
+      }
     }
     getPendingCasesData();
-  }, []);
+  }, [toast]);
 
   const parsedSelectedItem = useMemo(() => selectedItem ? parseContent(selectedItem.content) : null, [selectedItem]);
 
-  const handleCardClick = (item: CheckCaseItem) => {
+  const handleCardClick = (item: CaseItem) => {
     setSelectedItem(item);
     setIsModalOpen(true);
     setIsEditMode(false);
@@ -103,39 +110,30 @@ export default function PendingCasesPage() {
     if (!selectedItem) return;
 
     const newContent = `Тема: ${editedTheme}; Вопрос: ${editedQuestion}; Ответ: ${editedAnswer}`;
-    // 
+    const { data: updatedData, error } = await supabase
+      .from('deferredcases')
+      .update({ content: newContent })
+      .eq('id', selectedItem.id)
+      .select();
+
+    if (error) {
+      console.error('Error updating data:', error);
+      toast({ variant: "destructive", title: "Ошибка", description: "Не удалось сохранить изменения." });
+    } else if (updatedData) {
+      setData(prevData => prevData.map(item => item.id === selectedItem.id ? { ...item, content: newContent } : item));
+      setSelectedItem(prevItem => prevItem ? { ...prevItem, content: newContent } : null);
+      setIsEditMode(false);
+      toast({ title: "Успех", description: "Кейс успешно обновлен." });
+    }
   };
   
   const handleStatusChange = (status: 'ok' | 'not_ok' | 'pending' | 'think') => {
     if (!selectedItem) return;
     setIsModalOpen(false);
-
-    switch (status) {
-      case 'ok':
-        toast({
-          title: "Действие: ОК",
-          description: "Кейс будет удален из таблицы.",
-        });
-        break;
-      case 'not_ok':
-        toast({
-          title: "Действие: не ОК",
-          description: "Кейс будет перемещен в другую таблицу.",
-        });
-        break;
-      case 'pending':
-        toast({
-          title: "Действие: Отложить",
-          description: "Кейс будет перемещен в другую таблицу.",
-        });
-        break;
-      case 'think':
-        toast({
-          title: "Действие: Подумать",
-          description: "Кейс будет перемещен в другую таблицу.",
-        });
-        break;
-    }
+    toast({
+        title: "Действие в разработке",
+        description: `Действие "${status}" для отложенных кейсов еще не реализовано.`,
+    });
   };
 
   return (
@@ -157,7 +155,7 @@ export default function PendingCasesPage() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-400">Нет данных для отображения.</p>
+        <p className="text-gray-400 text-center">Кейсы грузятся, секундочку....</p>
       )}
 
       {selectedItem && parsedSelectedItem && (
