@@ -1,9 +1,7 @@
 
-'use client';
-
-import { useState, useRef, useEffect, useTransition } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Plus, MessageSquareText, FilePlus2, ThumbsUp, ThumbsDown, Meh } from 'lucide-react';
-import { sendMessage } from '@/app/actions';
+import { sendMessage } from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -382,7 +380,7 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
 export default function ChatUI() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isFeedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -417,28 +415,45 @@ export default function ChatUI() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = (feedback?: { case: Case; summary: string }) => {
+  const handleSend = async (feedback?: { case: Case; summary: string }) => {
     if (!currentUser) return;
     const trimmedInput = input.trim();
     if (!trimmedInput && !feedback) return;
+    if (isPending) return;
 
     let userMessageContent: string;
-    const formData = new FormData();
-    formData.append('sessionId', currentUser.uid);
     const startTime = Date.now();
+    
+    let requestData: {
+      message: string;
+      sessionId: string;
+      review?: boolean;
+      review_message?: string;
+      site?: boolean;
+      bz?: boolean;
+      telegram?: boolean;
+      cases?: Case[];
+    };
 
     if (feedback) {
         userMessageContent = `Отзыв: ${feedback.summary}`;
-        formData.append('review', 'true');
-        formData.append('review_message', feedback.summary);
-        formData.append('cases', JSON.stringify([feedback.case]));
+        requestData = {
+          message: '',
+          sessionId: currentUser.uid,
+          review: true,
+          review_message: feedback.summary,
+          cases: [feedback.case],
+        };
     } else {
         userMessageContent = trimmedInput;
-        formData.append('message', trimmedInput);
-        formData.append('site', String(siteEnabled));
-        formData.append('bz', String(bzEnabled));
-        formData.append('telegram', String(telegramEnabled));
-        formData.append('review', 'false');
+        requestData = {
+          message: trimmedInput,
+          sessionId: currentUser.uid,
+          site: siteEnabled,
+          bz: bzEnabled,
+          telegram: telegramEnabled,
+          review: false,
+        };
     }
 
     const userMessage: Message = {
@@ -455,39 +470,39 @@ export default function ChatUI() {
     }
 
     setMessages(prev => [...prev, userMessage, typingMessage]);
+    setIsPending(true);
 
-    startTransition(async () => {
-      const result = await sendMessage(null, formData);
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
+    const result = await sendMessage(requestData);
+    setIsPending(false);
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
 
-      let botContent: any;
-      
-      if (result?.response) {
-        try {
-            const parsedResponse = JSON.parse(result.response);
-            const responseData = parsedResponse[0];
-            botContent = {text: responseData, logs: result.logs};
+    let botContent: any;
+    
+    if (result?.response) {
+      try {
+          const parsedResponse = JSON.parse(result.response);
+          const responseData = parsedResponse[0];
+          botContent = {text: responseData, logs: result.logs};
 
-        } catch (e) {
-            botContent = { text: result.response, logs: result.logs };
-        }
-      } else if (result?.error) {
-        const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
-        botContent = { text: <span className="text-destructive">Ошибка: {errorString}</span>, logs: result.logs };
-      } else {
-        botContent = { text: <span className="text-destructive">Произошла неизвестная ошибка.</span> };
+      } catch (e) {
+          botContent = { text: result.response, logs: result.logs };
       }
-      
-      const botMessage: Message = {
-        id: Date.now() + 1,
-        role: 'bot',
-        content: botContent,
-        responseTime,
-      };
-      
-      setMessages(prev => [...prev.filter(m => !m.typing), botMessage]);
-    });
+    } else if (result?.error) {
+      const errorString = Array.isArray(result.error) ? result.error.join('\n') : result.error;
+      botContent = { text: <span className="text-destructive">Ошибка: {errorString}</span>, logs: result.logs };
+    } else {
+      botContent = { text: <span className="text-destructive">Произошла неизвестная ошибка.</span> };
+    }
+    
+    const botMessage: Message = {
+      id: Date.now() + 1,
+      role: 'bot',
+      content: botContent,
+      responseTime,
+    };
+    
+    setMessages(prev => [...prev.filter(m => !m.typing), botMessage]);
 
     setInput('');
   };
