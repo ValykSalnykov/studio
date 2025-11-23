@@ -361,8 +361,8 @@ function BotMessage({ content, typing, onOpenFeedback, responseTime, currentUser
     let contentString = '';
     if (typeof displayContent === 'string') {
         contentString = displayContent;
-    } else if (React.isValidElement(displayContent) && typeof displayContent.props.children === 'string') {
-        contentString = displayContent.props.children;
+    } else if (React.isValidElement(displayContent) && typeof (displayContent.props as any).children === 'string') {
+        contentString = (displayContent.props as any).children;
     }
 
     if (!actualContent || !contentString.trim() || (feedbackBlacklist.some(phrase => contentString.includes(phrase)))) {

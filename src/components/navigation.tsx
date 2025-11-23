@@ -81,7 +81,7 @@ export function Navigation() {
     <header className="bg-[#1A237E] text-white shadow-md">
       <div className="container mx-auto flex items-center justify-between p-2">
         <div className="w-1/4">
-           <Link href="/" className="text-lg font-bold">DAO Hub</Link>
+           <Link to="/" className="text-lg font-bold">DAO Hub</Link>
         </div>
 
         {!isHomePage && (
@@ -126,7 +126,7 @@ export function Navigation() {
                 return (
                    <Link
                       key={label}
-                      href={linkConfig.href || '#'}
+                      to={linkConfig.href || '#'}
                       onClick={() => setActiveMainLink(label)}
                       className={cn(
                         commonClasses,
@@ -153,7 +153,7 @@ export function Navigation() {
             {currentSubLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.disabled ? '#' : link.href}
+                to={link.disabled ? '#' : link.href}
                 className={cn(
                   'px-2.5 py-1 rounded-md transition-colors',
                   {
