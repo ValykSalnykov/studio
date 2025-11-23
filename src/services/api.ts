@@ -129,7 +129,7 @@ async function handleWebhookRequest(url: string | undefined, data: WebhookReques
       console.error('Fetch error:', error);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          return { logs: log, error: 'Запрос занял слишком много времени (более 60 секунд) и был прерван.' };
+          return { logs: log, error: 'Запрос занял слишком много времени (более 3 минут) и был прерван.' };
         }
         return { logs: log, error: `Не удалось отправить сообщение: ${error.message}` };
       }
