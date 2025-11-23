@@ -1,8 +1,5 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import UserAuth from '@/components/user-auth';
 import { Download, Bot, FolderKanban, Clock, Library, GraduationCap, ExternalLink } from 'lucide-react';
@@ -51,7 +48,8 @@ const navigationConfig: Record<string, { href?: string; icon?: React.ElementType
 };
 
 export function Navigation() {
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   const getInitialMainLink = () => {
     if (pathname.startsWith('/cases')) return 'Cases';
