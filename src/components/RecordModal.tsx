@@ -1,4 +1,3 @@
-'use client';
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/rpc';
@@ -82,7 +81,7 @@ const RecordModalView: React.FC<RecordModalViewProps> = (props) => {
       setTheme(parsed.theme);
       setQuestion(parsed.question);
       setAnswer(parsed.answer);
-      setOriginalState(parsed);
+      setOriginalState({ theme: parsed.theme, question: parsed.question, answer: parsed.answer });
       setNeighbors(similarData);
     } catch (e: any) {
       setError(String(e.message ?? e));

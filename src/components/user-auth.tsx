@@ -1,4 +1,3 @@
-'use client';
 
 import { useState, useEffect } from 'react';
 import { signUp, signIn, logOut, onAuthStateChange } from '../lib/auth';
